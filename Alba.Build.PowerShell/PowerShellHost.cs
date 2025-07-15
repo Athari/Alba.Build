@@ -28,13 +28,14 @@ internal class PowerShellHost : PSHost
 
     public override string Name => "MSBuild";
 
-    public override PowerShellHostUserInterface UI { get; }
+    public PowerShellHostUserInterface UIX { get; }
+    public override PSHostUserInterface UI => UIX;
 
     public PowerShellHost(BuildTask task, PSShell shell)
     {
         _task = task;
         _shell = shell;
-        UI = new(this);
+        UIX = new(this);
     }
 
     public static void RunBuildTask(BuildTask task, Action<PSShell, PowerShellHost> action)
@@ -49,17 +50,17 @@ internal class PowerShellHost : PSHost
         shell.Runspace = runspace;
         shell.Streams.Error.DataAdded +=
             [SuppressMessage("ReSharper", "AccessToDisposedClosure")](_, args) =>
-                host.UI.WriteError(shell.Streams.Error[args.Index]);
+                host.UIX.WriteError(shell.Streams.Error[args.Index]);
 
         runspace.Open();
         try {
             action(shell, host);
-            host.UI.Flush();
+            host.UIX.Flush();
         }
         catch (RuntimeException e) {
             if (e.ErrorRecord == null)
                 throw;
-            host.UI.WriteError(e.ErrorRecord);
+            host.UIX.WriteError(e.ErrorRecord);
         }
     }
 
@@ -89,7 +90,8 @@ internal class PowerShellHost : PSHost
     {
         private readonly StringBuilder _buffer = new();
 
-        public override PowerShellHostRawUserInterface RawUI { get; } = new(host);
+        public PowerShellHostRawUserInterface RawUIX { get; } = new(host);
+        public override PSHostRawUserInterface RawUI => RawUIX;
 
         public override Dictionary<string, PSObject> Prompt(string caption, string message, Collection<FieldDescription> descriptions) => throw NonInteractive();
         public override int PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, int defaultChoice) => throw NonInteractive();

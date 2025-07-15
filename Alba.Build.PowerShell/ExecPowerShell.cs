@@ -41,7 +41,7 @@ public partial class ExecPowerShell : BuildTask
                 var ast = Parser.ParseInput(Script, out _, out var errors);
                 if (errors != null) {
                     foreach (var error in errors)
-                        host.UI.WriteError(error);
+                        host.UIX.WriteError(error);
                     return;
                 }
 

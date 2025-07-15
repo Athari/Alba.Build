@@ -3,13 +3,21 @@
   <!-- ReSharper disable VulnerablePackage -->
 
   <PropertyGroup Label="Platform">
-    <!--<TargetFramework>netstandard2.0</TargetFramework>-->
+    <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
     <UseT4>true</UseT4>
+    <Ancient Condition="'$(TargetFramework)' == 'netstandard2.0'">true</Ancient>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Ancient)' == 'true'">
+    <DefineConstants>$(DefineConstants);ANCIENT</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.2.0" />
-    <PackageReference Include="System.Management.Automation" Version="7.2.0" />
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" Condition="'$(Ancient)' == 'true'" />
+    <PackageReference Include="System.Management.Automation" Version="7.2.0" Condition="'$(Ancient)' != 'true'" />
   </ItemGroup>
 
 </Project>

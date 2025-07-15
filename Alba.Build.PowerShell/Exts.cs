@@ -26,4 +26,16 @@ internal static class Exts
     {
         return @this.Where(i => i != null)!;
     }
+
+  #if ANCIENT
+
+    public static HashSet<T> ToHashSet<T>(this IEnumerable<T> @this) => [ ..@this ];
+
+    public static void Deconstruct<TKey, TValue>(this KeyValuePair<TKey, TValue> @this, out TKey key, out TValue value)
+    {
+        key = @this.Key;
+        value = @this.Value;
+    }
+
+  #endif
 }
