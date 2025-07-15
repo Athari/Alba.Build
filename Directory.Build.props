@@ -1,0 +1,32 @@
+<Project>
+
+  <PropertyGroup Label="Platform">
+    <TargetFrameworks>net6.0</TargetFrameworks>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build">
+    <!-- IDE0130: Namespace does not match folder structure -->
+    <NoWarn>$(NoWarn);IDE0130</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.Build.Utilities.Task" Alias="BuildTask" />
+    <Using Include="System.Management.Automation.PowerShell" Alias="PSShell" />
+  </ItemGroup>
+
+  <PropertyGroup Label="Artifacts">
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <CurrentSolutionDir>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'Alba.AVCodecFormats.sln'))\</CurrentSolutionDir>
+    <SolutionDir Condition="$(SolutionDir) == '' or $(SolutionDir) == '*Undefined*'">$(CurrentSolutionDir)</SolutionDir>
+    <ArtifactsPath>$(SolutionDir)Artifacts/</ArtifactsPath>
+    <!--<BaseOutputPath>$(ArtifactsPath)bin/$(MSBuildProjectName)/</BaseOutputPath>-->
+    <BaseOutputPath>$(ArtifactsPath)</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(ArtifactsPath)Obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+
+</Project>
