@@ -20,12 +20,14 @@
           [Alias("Items1")] $Compile
         )
         $Args.Project | Format-Table
-        # $Args | Get-Member
         $Compile | Format-Table
         Write-Verbose "Verbose message"
         Write-Debug "Verbose message"
         Write-Warning "Hello world in $TargetFramework of $SolutionDir!"
         Write-Warning "LangVersion: $(LangVersion)"
+
+        $s = Read-Host
+        $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
         ]]>
       </HelloWorld>
     </PropertyGroup>

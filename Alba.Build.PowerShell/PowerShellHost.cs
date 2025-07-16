@@ -144,9 +144,16 @@ internal class PowerShellHost : PSHost
             LogMessage(LogLevel.Error, message,
                 ErrorCat.Abps, ErrorCode.WriteHostError, new(ctx.Shell.GetCallStack()));
 
-        public void WriteError(ErrorRecord error) =>
-            LogMessage(LogLevel.Error, $"{error}{Endl}{error.ScriptStackTrace}",
-                ErrorCat.Abps, ErrorCode.ErrorRecord, new(error));
+        public void WriteError(ErrorRecord error)
+        {
+            var message = error.ErrorDetails?.Message.NullIfEmpty() ?? error.Exception?.Message ?? error.ToString();
+            var text = $"{message}{Endl}{error.ScriptStackTrace}";
+            if (error.Exception != null)
+                LogException(LogLevel.Error, error.Exception, true, text, unwrapErrorRecord: false);
+            else
+                LogMessage(LogLevel.Error, text,
+                    ErrorCat.Abps, ErrorCode.ErrorRecord, new(error));
+        }
 
         public void WriteError(ParseError error) =>
             LogMessage(LogLevel.Error, $"{error}",
@@ -155,61 +162,65 @@ internal class PowerShellHost : PSHost
         public bool LogException(
             LogLevel level, Exception e, bool withStackTrace = true, string? message = null,
             [ValueProvider(ErrorProvider.Cat)] string? category = null,
-            [ValueProvider(ErrorProvider.Code)] string? code = null)
+            [ValueProvider(ErrorProvider.Code)] string? code = null,
+            bool unwrapErrorRecord = true)
         {
-            if (e is RuntimeException { ErrorRecord: var error }) {
+            //Exts.LaunchDebugger();
+            if (unwrapErrorRecord && e is RuntimeException { ErrorRecord: var error }) {
                 WriteError(error);
                 return false;
             }
-            code ??= e switch {
-                ArgumentException => ErrorCode.ArgumentError,
-                RuntimeException => ErrorCode.RuntimeError,
-                _ => ErrorCode.InternalError,
-            };
             var text = (message != null ? $"{message} " : "")
               + e.Message
               + (withStackTrace && e.StackTrace?.Length > 0 ? $"{Endl}{e.StackTrace}" : "");
-            LogMessage(level, text, category ?? ErrorCat.Abps, code, new());
+            LogMessage(level, text,
+                category ?? ErrorCat.Abps,
+                code ?? GetExceptionErrorCode(e), new());
             return false;
         }
 
-        private void LogMessage(
+        public void LogMessage(
             LogLevel level, string message,
             [ValueProvider(ErrorProvider.Cat)] string category,
             [ValueProvider(ErrorProvider.Code)] string code) =>
             LogMessage(level, message, category, code, new());
 
         private void LogMessage(
-            LogLevel level,string message,
+            LogLevel level, string message,
             [ValueProvider(ErrorProvider.Cat)] string category,
             [ValueProvider(ErrorProvider.Code)] string code,
             CallStack stack)
         {
+            (stack, message) =
+                stack.IsEmpty ? (CallStack.Empty, message)
+                : stack.IsFileEmpty ? (CallStack.Empty, stack.ToShortBuildFormat(message))
+                : (stack, message);
+            //var text = stack.ToFullBuildFormat(level, message, category, code);
             switch (level) {
                 case LogLevel.MessageLow:
                 case LogLevel.MessageNormal:
                 case LogLevel.MessageHigh:
                     ctx.Task.Log.LogMessage(
                         category, code, null,
-                        stack.File, stack.LineNumber, stack.ColumnNumber, stack.EndLineNumber, stack.EndColumnNumber,
+                        stack.File, stack.Line, stack.Column, stack.EndLine, stack.EndColumn,
                         level.ToImportance(), message);
                     return;
                 case LogLevel.Warning:
                     ctx.Task.Log.LogWarning(
                         category, code, null,
-                        stack.File, stack.LineNumber, stack.ColumnNumber, stack.EndLineNumber, stack.EndColumnNumber,
+                        stack.File, stack.Line, stack.Column, stack.EndLine, stack.EndColumn,
                         message);
                     break;
                 case LogLevel.Error:
                     ctx.Task.Log.LogError(
                         category, code, null,
-                        stack.File, stack.LineNumber, stack.ColumnNumber, stack.EndLineNumber, stack.EndColumnNumber,
+                        stack.File, stack.Line, stack.Column, stack.EndLine, stack.EndColumn,
                         message);
                     break;
                 case LogLevel.Critical:
                     ctx.Task.Log.LogCriticalMessage(
                         category, code, null,
-                        stack.File, stack.LineNumber, stack.ColumnNumber, stack.EndLineNumber, stack.EndColumnNumber,
+                        stack.File, stack.Line, stack.Column, stack.EndLine, stack.EndColumn,
                         message);
                     break;
                 default:
@@ -233,7 +244,7 @@ internal class PowerShellHost : PSHost
         public override Size MaxPhysicalWindowSize => DefaultBufferSize;
         public override Coordinates CursorPosition { get; set; } = new(0, 0);
         public override Coordinates WindowPosition { get; set; } = new(0, 0);
-        public override int CursorSize { get; set; } = 1;
+        public override int CursorSize { get; set; } = 25;
         public override string WindowTitle { get; set; } = ctx.Host.Name;
         public override bool KeyAvailable => false;
 
@@ -245,26 +256,25 @@ internal class PowerShellHost : PSHost
         public override void SetBufferContents(Rectangle rectangle, BufferCell fill) => throw RawNotSupported();
     }
 
-    private static InvalidOperationException NonInteractive() =>
-        new("Interaction with user is not supported in MSBuild tasks.");
-
-    private static NotSupportedException RawNotSupported() =>
-        new("Raw user interface is not supported in MSBuild tasks.");
-
     private class CallStack
     {
-        public int LineNumber { get; }
-        public int ColumnNumber { get; }
-        public int EndLineNumber { get; }
-        public int EndColumnNumber { get; }
+        public static readonly CallStack Empty = new();
+
+        public int Line { get; }
+        public int Column { get; }
+        public int EndLine { get; }
+        public int EndColumn { get; }
         public string File { get; }
+
+        public bool IsFileEmpty => File.IsNullOrEmpty();
+        public bool IsEmpty => IsFileEmpty && Line == 0;
 
         private CallStack(IScriptExtent? position, string? scriptName)
         {
-            LineNumber = position?.StartLineNumber ?? 0;
-            ColumnNumber = position?.StartColumnNumber ?? 0;
-            EndLineNumber = position?.EndLineNumber ?? 0;
-            EndColumnNumber = position?.EndColumnNumber ?? 0;
+            Line = position?.StartLineNumber ?? 0;
+            Column = position?.StartColumnNumber ?? 0;
+            EndLine = position?.EndLineNumber ?? 0;
+            EndColumn = position?.EndColumnNumber ?? 0;
             File = scriptName ?? "";
         }
 
@@ -276,5 +286,40 @@ internal class PowerShellHost : PSHost
         public CallStack(ParseError error) : this(error.Extent, null) { }
 
         public CallStack() : this(null, null) { }
+
+        /// <remarks>https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks</remarks>
+        public string ToFullBuildFormat(LogLevel level, string message, string cat, string code) =>
+            IsEmpty ? message : $"{FormatFile()}{FormatPosition()} : {cat} {level.ToBuildFormat()} {code} : {message}";
+
+        public string ToShortBuildFormat(string message) =>
+            IsEmpty ? message : $"{FormatFile()}{FormatPosition()} : {message}";
+
+        private string FormatFile() => File.NullIfEmpty() ?? "<ScriptBlock>";
+
+        private string FormatPosition() =>
+            Line == 0 ? ""
+            : Column == 0 ? EndLine == 0 ? $"{Line}" : $"{Line}-{EndLine}"
+            : EndColumn == 0 ? $"{Line},{Column}"
+            : EndColumn == 0 ? $"{Line},{Column}-{EndColumn}"
+            : $"{Line},{Column},{EndLine},{EndColumn}";
     }
+
+    private static NonInteractiveException NonInteractive() => new();
+
+    private static RawOutputException RawNotSupported() => new();
+
+    [SuppressMessage("ReSharper", "RedundantTypeCheckInPattern")]
+    private static string GetExceptionErrorCode(Exception e) =>
+        e switch {
+            ArgumentException => ErrorCode.ArgumentError,
+            NonInteractiveException => ErrorCode.NonInteractiveError,
+            RawOutputException => ErrorCode.RawOutputError,
+            AggregateException { InnerExceptions: var exs } => exs
+                .Select(GetExceptionErrorCode)
+                .FirstOrDefault(c => c != ErrorCode.RuntimeError) ?? ErrorCode.RuntimeError,
+            RuntimeException { ErrorRecord.Exception: { } ex } => GetExceptionErrorCode(ex),
+            Exception { InnerException: { } ex } => GetExceptionErrorCode(ex),
+            RuntimeException => ErrorCode.RuntimeError,
+            _ => ErrorCode.InternalError,
+        };
 }

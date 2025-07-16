@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 
@@ -11,27 +10,17 @@ public partial class ExecPowerShell : BuildTask
     private bool _isFileSpecified;
 
     [field: MaybeNull]
-    public string Script
-    {
-        get;
-        set => SetSpecified(out field, value, out _isScriptSpecified);
-    }
+    public string Script { get; set => SetSpecified(out field, value, out _isScriptSpecified); }
 
     [field: MaybeNull]
-    public string File
-    {
-        get;
-        set => SetSpecified(out field, value, out _isFileSpecified);
-    }
+    public string File { get; set => SetSpecified(out field, value, out _isFileSpecified); }
 
     public bool LaunchDebugger { get; set; }
 
     public override bool Execute()
     {
-      #if DEBUG
-        if (LaunchDebugger && !Debugger.IsAttached)
-            Debugger.Launch();
-      #endif
+        if (LaunchDebugger)
+            Exts.LaunchDebugger();
 
         var args = new ScriptArgs();
         args.CopyFromTask(this);
@@ -52,14 +41,15 @@ public partial class ExecPowerShell : BuildTask
                         host.UIX.WriteError(error);
                     return false;
                 }
-
                 scriptInfo = new(ctx, scriptAst);
                 shell.AddScript(Script);
             }
             else if (_isFileSpecified) {
-                var command = new Command(Path.GetFullPath(File), isScript: false);
+                var scriptPath = Path.GetFullPath(File);
+                var command = new Command(scriptPath, isScript: false);
                 scriptInfo = new(ctx, command);
                 shell.Commands.AddCommand(command);
+                ctx.Task.Log.LogCommandLine(scriptPath);
             }
 
             foreach ((string name, object? value) in GetNamedParameters(args, scriptInfo))

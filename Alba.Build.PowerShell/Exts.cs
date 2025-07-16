@@ -1,10 +1,27 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿#if ANCIENT
+using System.Diagnostics.CodeAnalysis;
+#endif
+using System.Diagnostics;
 using System.Management.Automation.Language;
+using JetBrains.Annotations;
 
 namespace Alba.Build.PowerShell;
 
 internal static class Exts
 {
+    [Conditional("DEBUG")]
+    public static void LaunchDebugger()
+    {
+        if (!Debugger.IsAttached)
+            Debugger.Launch();
+    }
+
+    public static bool IsNullOrEmpty(this string? @this) =>
+        string.IsNullOrEmpty(@this);
+
+    public static string? NullIfEmpty(this string? @this) =>
+        @this.IsNullOrEmpty() ? null : @this;
+
     public static Dictionary<TKey, T> ToDictionarySafe<T, TKey>(this IEnumerable<T> @this,
         Func<T, TKey> keySelector, IEqualityComparer<TKey>? comparer)
         where TKey : notnull
@@ -39,7 +56,7 @@ internal static class Exts
         return @this.Where(i => i != null)!;
     }
 
-    public static void AddRange<T>(this ICollection<T> @this, IEnumerable<T> items)
+    public static void AddRange<T>(this ICollection<T> @this, [InstantHandle] IEnumerable<T> items)
     {
         foreach (T item in items)
             @this.Add(item);
@@ -66,7 +83,6 @@ internal static class Exts
         @this.Name.VariablePath.ToString();
 
   #if ANCIENT
-
     [SuppressMessage("ReSharper", "ReturnTypeCanBeNotNullable", Justification = "No, it can't")]
     public static TValue? GetValueOrDefault<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> @this, TKey key) =>
         @this.GetValueOrDefault(key, default!);
@@ -81,6 +97,5 @@ internal static class Exts
         key = @this.Key;
         value = @this.Value;
     }
-
   #endif
 }

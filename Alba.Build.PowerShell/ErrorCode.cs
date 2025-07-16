@@ -25,6 +25,8 @@ public static class ErrorCode
 
     public const string RuntimeError = $"{Prefix}201";
     public const string ErrorRecord = $"{Prefix}202";
+    public const string NonInteractiveError = $"{Prefix}203";
+    public const string RawOutputError = $"{Prefix}204";
 
     public const string WriteHostError = $"{Prefix}301";
     public const string WriteHostWarning = $"{Prefix}302";
