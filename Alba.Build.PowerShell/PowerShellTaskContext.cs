@@ -1,15 +1,16 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Alba.Build.PowerShell.Tasks;
 
 namespace Alba.Build.PowerShell;
 
-internal class PowerShellTaskContext(BuildTask task, PSShell shell, PowerShellHost host)
+internal class PowerShellTaskContext(ExecPowerShell task, PSShell shell, PowerShellHost host)
 {
-    public BuildTask Task { get => Get(field); set; } = task;
+    public ExecPowerShell Task { get => Get(field); set; } = task;
     public PSShell Shell { get => Get(field); set; } = shell;
     public PowerShellHost Host { get => Get(field); set; } = host;
 
-    public void Deconstruct(out BuildTask task, out PSShell shell, out PowerShellHost host) =>
+    public void Deconstruct(out ExecPowerShell task, out PSShell shell, out PowerShellHost host) =>
         (task, shell, host) = (Task, Shell, Host);
 
     [field: MaybeNull]

@@ -30,6 +30,9 @@ public class WriteBuildMessageCommand : PowerShellCommand
     [Parameter, Alias("Link")]
     public string? HelpLink { get; set; }
 
+    [Parameter, Alias("StackTrace")]
+    public bool? WithStackTrace { get; set; }
+
     protected override void ProcessRecord()
     {
         var host = Context.Host;
@@ -38,16 +41,17 @@ public class WriteBuildMessageCommand : PowerShellCommand
 
         switch (Error) {
             case Exception e:
-                host.UIX.LogException(logLevel, e, withStackTrace: true, Message,
+                host.UIX.LogException(logLevel, e, WithStackTrace, Message,
                     cat, Code ?? ErrorCode.WriteBuildError, unwrapErrorRecord: true, new(Origin), HelpLink);
                 break;
 
             case ErrorRecord error:
+                string text = host.UIX.GetErrorRecordMessageText(error, WithStackTrace);
                 if (error is { Exception: { } inner })
-                    host.UIX.LogException(logLevel, inner, withStackTrace: true, Message,
+                    host.UIX.LogException(logLevel, inner, WithStackTrace, text,
                         cat, Code ?? ErrorCode.WriteBuildError, unwrapErrorRecord: false, new(Origin), HelpLink);
                 else
-                    host.UIX.LogMessage(logLevel, Message,
+                    host.UIX.LogMessage(logLevel, text,
                         cat, Code ?? ErrorCode.WriteBuildError, Origin != null ? new(Origin) : new(error), HelpLink);
                 break;
 

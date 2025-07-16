@@ -33,4 +33,12 @@ public static class LogLevelExts
             Error => MessageCategory.Error,
             _ => throw new ArgumentOutOfRangeException(nameof(@this), @this, null),
         };
+
+    public static LogLevel ToLogLevel(this MessageImportance @this) =>
+        @this switch {
+            MessageImportance.High => MessageHigh,
+            MessageImportance.Normal => MessageNormal,
+            MessageImportance.Low => MessageLow,
+            _ => throw new ArgumentOutOfRangeException(nameof(@this), @this, null),
+        };
 }

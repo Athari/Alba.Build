@@ -53,8 +53,8 @@ internal class ScriptCommandInfo
             action();
         }
         catch (Exception e) {
-            _ctx.Host.UIX.LogException(LogLevel.Error, e, true, "Failed to parse script AST.",
-                ErrorCode.Prefix, ErrorCode.AstParseError);
+            _ctx.Host.UIX.LogException(LogLevel.Error, e, withStackTrace: null,
+                "Failed to parse script AST.", ErrorCat.Build, ErrorCode.AstParseError);
         }
     }
 

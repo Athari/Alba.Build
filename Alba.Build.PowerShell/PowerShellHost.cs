@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Security;
 using System.Text;
 using Alba.Build.PowerShell.Commands;
+using Alba.Build.PowerShell.Tasks;
 using JetBrains.Annotations;
 using Microsoft.PowerShell;
 
@@ -24,25 +25,46 @@ internal class PowerShellHost : PSHost
         typeof(WriteInfoCommand),
     ];
 
-    private PowerShellTaskContext _ctx = PowerShellTaskContext.Invalid;
+    private readonly PowerShellTaskContext _ctx;
 
-    public PowerShellHostUserInterface UIX { get; private set; } = null!;
+    public PowerShellHostUserInterface UIX { get; }
 
     public override Guid InstanceId { get; } = Guid.NewGuid();
 
     public override PSObject PrivateData => new(_ctx);
 
-    private PowerShellHost() { }
+    private PowerShellHost(ExecPowerShell task, PSShell shell)
+    {
+        _ctx = new(task, shell, this);
+        UIX = new(_ctx);
+    }
 
-    public static bool RunBuildTask(BuildTask task, Func<PowerShellTaskContext, bool> action)
+    public override PSHostUserInterface UI => UIX;
+
+    public override CultureInfo CurrentCulture => Thread.CurrentThread.CurrentCulture;
+    public override CultureInfo CurrentUICulture => Thread.CurrentThread.CurrentUICulture;
+    public override string Name => GetType().Name;
+
+    public override Version Version =>
+        TryGetVersion((AssemblyVersionAttribute a) => a.Version)
+     ?? TryGetVersion((AssemblyFileVersionAttribute a) => a.Version)
+     ?? TryGetVersion((AssemblyInformationalVersionAttribute a) => a.InformationalVersion)
+     ?? new(0, 1, 0, 0);
+
+    private Version? TryGetVersion<T>(Func<T, string> getter) where T : Attribute
+    {
+        var attr = GetType().Assembly.GetCustomAttribute<T>();
+        return attr != null && Version.TryParse(getter(attr), out var ver) ? ver : null;
+    }
+
+    public static bool RunBuildTask(ExecPowerShell task, Func<PowerShellTaskContext, bool> action)
     {
         //Environment.SetEnvironmentVariable("PSExecutionPolicyPreference", nameof(ExecutionPolicy.Bypass));
 
         using var ps = PSShell.Create();
-        var host = new PowerShellHost();
-        host._ctx = new(task, ps, host);
-        host.UIX = new(host._ctx);
-        using var runspace = RunspaceFactory.CreateRunspace(host, CreateSession());
+        var host = new PowerShellHost(task, ps);
+
+        using var runspace = RunspaceFactory.CreateRunspace(host, host.CreateSession());
 
         Runspace.DefaultRunspace = runspace;
         ps.Runspace = runspace;
@@ -64,14 +86,16 @@ internal class PowerShellHost : PSHost
         }
     }
 
-    private static InitialSessionState CreateSession()
+    private InitialSessionState CreateSession()
     {
         var session = InitialSessionState.CreateDefault2();
-        // TODO session.EnvironmentVariables
         session.ExecutionPolicy = ExecutionPolicy.Bypass;
-        session.Commands.Add(Commands.Select(c => new SessionStateCmdletEntry(
-            c.GetCustomAttribute<CmdletAttribute>()!.GetName(), c, null)));
-        //session.Formats.Add([ 
+        session.Commands.Add(Commands
+            .Select(c => new SessionStateCmdletEntry(c.GetCustomAttribute<CmdletAttribute>()!.GetName(), c, null)));
+        if (_ctx.Task.EnvironmentVariables != null)
+            session.EnvironmentVariables.Add(_ctx.Task.EnvironmentDictionary
+                .Select(v => new SessionStateVariableEntry(v.Key, v.Value, null)));
+        //session.Formats.Add([
         //    new(new ExtendedTypeDefinition("typename", [
         //        new("name", new TableControl(
         //            new([
@@ -97,24 +121,6 @@ internal class PowerShellHost : PSHost
         //    new("name", 10, "descr", ScopedItemOptions.Constant),
         //]);
         return session;
-    }
-
-    public override PSHostUserInterface UI => UIX;
-
-    public override CultureInfo CurrentCulture => Thread.CurrentThread.CurrentCulture;
-    public override CultureInfo CurrentUICulture => Thread.CurrentThread.CurrentUICulture;
-    public override string Name => "MSBuild";
-
-    public override Version Version =>
-        TryGetVersion((AssemblyVersionAttribute a) => a.Version)
-     ?? TryGetVersion((AssemblyFileVersionAttribute a) => a.Version)
-     ?? TryGetVersion((AssemblyInformationalVersionAttribute a) => a.InformationalVersion)
-     ?? new(0, 1, 0, 0);
-
-    private Version? TryGetVersion<T>(Func<T, string> getter) where T : Attribute
-    {
-        var attr = GetType().Assembly.GetCustomAttribute<T>();
-        return attr != null && Version.TryParse(getter(attr), out var ver) ? ver : null;
     }
 
     public override void NotifyBeginApplication() { }
@@ -156,7 +162,7 @@ internal class PowerShellHost : PSHost
 
             var logMessage = _buffer + message[..lastNewLine].TrimEnd('\r', '\n');
             if (logMessage.Length > 0)
-                LogMessage(LogLevel.MessageHigh, logMessage,
+                LogMessage(ctx.Task.DefaultMessageImportance.ToLogLevel(), logMessage,
                     ErrorCat.Build, ErrorCode.WriteHostMessage, CallStack.Empty);
 
             var remainder = message[(lastNewLine + 1)..];
@@ -192,15 +198,13 @@ internal class PowerShellHost : PSHost
             LogMessage(LogLevel.Error, message,
                 ErrorCat.Build, ErrorCode.WriteHostError, new(ctx.Shell.GetCallStack()));
 
-        public void WriteError(ErrorRecord error)
+        public void WriteError(ErrorRecord error, bool? withStackTrace = null)
         {
-            var message = error.ErrorDetails?.Message.NullIfEmpty() ?? error.Exception?.Message ?? error.ToString();
-            var text = $"{message}{Endl}{error.ScriptStackTrace}";
+            string text = GetErrorRecordMessageText(error, withStackTrace);
             if (error.Exception != null)
-                LogException(LogLevel.Error, error.Exception, true, text, unwrapErrorRecord: false);
+                LogException(LogLevel.Error, error.Exception, withStackTrace, text, unwrapErrorRecord: false);
             else
-                LogMessage(LogLevel.Error, text,
-                    ErrorCat.Build, ErrorCode.ErrorRecord, new(error));
+                LogMessage(LogLevel.Error, text, ErrorCat.Build, ErrorCode.ErrorRecord, new(error));
         }
 
         public void WriteError(ParseError error) =>
@@ -208,19 +212,19 @@ internal class PowerShellHost : PSHost
                 ErrorCat.Build, ErrorCode.ParseError, new(error));
 
         public bool LogException(
-            LogLevel level, Exception e, bool withStackTrace = true, string? message = null,
+            LogLevel level, Exception e, bool? withStackTrace = null, string? message = null,
             [ValueProvider(ErrorProvider.Cat)] string? category = null,
             [ValueProvider(ErrorProvider.Code)] string? code = null,
             bool unwrapErrorRecord = true, CallStack? stack = null, string? helpLink = null)
         {
             //Exts.LaunchDebugger();
             if (unwrapErrorRecord && e is RuntimeException { ErrorRecord: var error }) {
-                WriteError(error);
+                WriteError(error, withStackTrace);
                 return false;
             }
             var text = (message != null ? $"{message} " : "")
               + e.Message
-              + (withStackTrace && e.StackTrace?.Length > 0 ? $"{Endl}{e.StackTrace}" : "");
+              + ((withStackTrace ?? ctx.Task.OutputExceptionStackTraces) && e.StackTrace?.Length > 0 ? $"{Endl}{e.StackTrace}" : "");
             LogMessage(level, text,
                 category ?? ErrorCat.Build, code ?? GetExceptionErrorCode(e),
                 stack ?? CallStack.Empty, helpLink);
@@ -273,6 +277,14 @@ internal class PowerShellHost : PSHost
         public void Flush()
         {
             _buffer.AppendLine();
+        }
+
+        public string GetErrorRecordMessageText(ErrorRecord error, bool? withStackTrace)
+        {
+            var message = error.ErrorDetails?.Message.NullIfEmpty() ?? error.Exception?.Message ?? error.ToString();
+            return withStackTrace ?? ctx.Task.OutputErrorStackTraces
+                ? $"{message}{Endl}{error.ScriptStackTrace}"
+                : message;
         }
     }
 
