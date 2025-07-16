@@ -2,8 +2,10 @@
 using System.Diagnostics.CodeAnalysis;
 #endif
 using System.Diagnostics;
+using System.Management.Automation;
 using System.Management.Automation.Language;
 using JetBrains.Annotations;
+using Debugger = System.Diagnostics.Debugger;
 
 namespace Alba.Build.PowerShell;
 
@@ -16,11 +18,15 @@ internal static class Exts
             Debugger.Launch();
     }
 
+    // String
+
     public static bool IsNullOrEmpty(this string? @this) =>
         string.IsNullOrEmpty(@this);
 
     public static string? NullIfEmpty(this string? @this) =>
         @this.IsNullOrEmpty() ? null : @this;
+
+    // Enumerable
 
     public static Dictionary<TKey, T> ToDictionarySafe<T, TKey>(this IEnumerable<T> @this,
         Func<T, TKey> keySelector, IEqualityComparer<TKey>? comparer)
@@ -62,6 +68,8 @@ internal static class Exts
             @this.Add(item);
     }
 
+    // Type
+
     /// <remarks><see cref="Type.IsAssignableFrom"/> is "reverse is" and as such is confusing.</remarks>
     public static bool IsAssignableTo(this Type @this, Type type) => type.IsAssignableFrom(@this);
 
@@ -70,6 +78,8 @@ internal static class Exts
 
     /// <summary>Equivalent to "is" keyword.</summary>
     public static bool Is<T>(this Type @this) => @this.IsAssignableTo(typeof(T));
+
+    // PS AST
 
     public static IEnumerable<T> FindAll<T>(this Ast @this, Func<T, bool> predicate, bool searchNestedScriptBlocks = false)
         where T : Ast =>
@@ -81,6 +91,9 @@ internal static class Exts
 
     public static string GetName(this ParameterAst @this) =>
         @this.Name.VariablePath.ToString();
+
+    public static string GetName(this CmdletAttribute @this) =>
+        $"{@this.VerbName}-{@this.NounName}";
 
   #if ANCIENT
     [SuppressMessage("ReSharper", "ReturnTypeCanBeNotNullable", Justification = "No, it can't")]

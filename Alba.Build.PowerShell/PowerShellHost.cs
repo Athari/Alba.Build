@@ -8,6 +8,7 @@ using System.Management.Automation.Runspaces;
 using System.Reflection;
 using System.Security;
 using System.Text;
+using Alba.Build.PowerShell.Commands;
 using JetBrains.Annotations;
 using Microsoft.PowerShell;
 
@@ -18,10 +19,18 @@ internal class PowerShellHost : PSHost
     private static readonly Size DefaultBufferSize = new(200, 10);
     private static readonly string Endl = Environment.NewLine;
 
+    private static readonly List<Type> Commands = [
+        typeof(WriteBuildMessageCommand),
+        typeof(WriteInfoCommand),
+    ];
+
     private PowerShellTaskContext _ctx = PowerShellTaskContext.Invalid;
 
     public PowerShellHostUserInterface UIX { get; private set; } = null!;
+
     public override Guid InstanceId { get; } = Guid.NewGuid();
+
+    public override PSObject PrivateData => new(_ctx);
 
     private PowerShellHost() { }
 
@@ -33,7 +42,7 @@ internal class PowerShellHost : PSHost
         var host = new PowerShellHost();
         host._ctx = new(task, ps, host);
         host.UIX = new(host._ctx);
-        using var runspace = RunspaceFactory.CreateRunspace(host);
+        using var runspace = RunspaceFactory.CreateRunspace(host, CreateSession());
 
         Runspace.DefaultRunspace = runspace;
         ps.Runspace = runspace;
@@ -43,7 +52,7 @@ internal class PowerShellHost : PSHost
 
         runspace.Open();
         try {
-            ps.SetExecutionPolicy(ExecutionPolicyScope.Process, ExecutionPolicy.Bypass);
+            //ps.SetExecutionPolicy(ExecutionPolicyScope.Process, ExecutionPolicy.Bypass);
             return action(host._ctx);
         }
         catch (RuntimeException e) {
@@ -53,6 +62,41 @@ internal class PowerShellHost : PSHost
         finally {
             host.UIX.Flush();
         }
+    }
+
+    private static InitialSessionState CreateSession()
+    {
+        var session = InitialSessionState.CreateDefault2();
+        // TODO session.EnvironmentVariables
+        session.ExecutionPolicy = ExecutionPolicy.Bypass;
+        session.Commands.Add(Commands.Select(c => new SessionStateCmdletEntry(
+            c.GetCustomAttribute<CmdletAttribute>()!.GetName(), c, null)));
+        //session.Formats.Add([ 
+        //    new(new ExtendedTypeDefinition("typename", [
+        //        new("name", new TableControl(
+        //            new([
+        //                new(Alignment.Center, new("val", DisplayEntryValueType.Property)),
+        //            ]) {
+        //                Wrap = true,
+        //            },
+        //            [
+        //                new("label", 20, Alignment.Right),
+        //            ]
+        //        )),
+        //    ])),
+        //    new(new FormatTable([
+        //        "file1",
+        //    ])),
+        //    new("file2"),
+        //]);
+        //session.ThreadOptions = PSThreadOptions.UseCurrentThread;
+        //session.Providers.Add([
+        //    new("", typeof(int), null),
+        //]);
+        //session.Variables.Add([
+        //    new("name", 10, "descr", ScopedItemOptions.Constant),
+        //]);
+        return session;
     }
 
     public override PSHostUserInterface UI => UIX;
@@ -113,7 +157,7 @@ internal class PowerShellHost : PSHost
             var logMessage = _buffer + message[..lastNewLine].TrimEnd('\r', '\n');
             if (logMessage.Length > 0)
                 LogMessage(LogLevel.MessageHigh, logMessage,
-                    ErrorCat.Abps, ErrorCode.WriteHostDefault);
+                    ErrorCat.Build, ErrorCode.WriteHostMessage, CallStack.Empty);
 
             var remainder = message[(lastNewLine + 1)..];
             _buffer.Clear();
@@ -125,24 +169,28 @@ internal class PowerShellHost : PSHost
 
         public override void WriteDebugLine(string message) =>
             LogMessage(LogLevel.MessageLow, message,
-                ErrorCat.Abps, ErrorCode.WriteHostDebug);
+                ErrorCat.Build, ErrorCode.WriteHostDebug, CallStack.Empty);
 
         public override void WriteVerboseLine(string message) =>
             LogMessage(LogLevel.MessageLow, message,
-                ErrorCat.Abps, ErrorCode.WriteHostVerbose);
+                ErrorCat.Build, ErrorCode.WriteHostVerbose, CallStack.Empty);
 
         public override void WriteProgress(long sourceId, ProgressRecord record)
         {
             // TODO: WriteProgress
         }
 
+        public void WriteInfoLine(string message) =>
+            LogMessage(LogLevel.Info, message,
+                ErrorCat.Build, ErrorCode.WriteHostInfo, new(ctx.Shell.GetCallStack()));
+
         public override void WriteWarningLine(string message) =>
             LogMessage(LogLevel.Warning, message,
-                ErrorCat.Abps, ErrorCode.WriteHostWarning, new(ctx.Shell.GetCallStack()));
+                ErrorCat.Build, ErrorCode.WriteHostWarning, new(ctx.Shell.GetCallStack()));
 
         public override void WriteErrorLine(string message) =>
             LogMessage(LogLevel.Error, message,
-                ErrorCat.Abps, ErrorCode.WriteHostError, new(ctx.Shell.GetCallStack()));
+                ErrorCat.Build, ErrorCode.WriteHostError, new(ctx.Shell.GetCallStack()));
 
         public void WriteError(ErrorRecord error)
         {
@@ -152,18 +200,18 @@ internal class PowerShellHost : PSHost
                 LogException(LogLevel.Error, error.Exception, true, text, unwrapErrorRecord: false);
             else
                 LogMessage(LogLevel.Error, text,
-                    ErrorCat.Abps, ErrorCode.ErrorRecord, new(error));
+                    ErrorCat.Build, ErrorCode.ErrorRecord, new(error));
         }
 
         public void WriteError(ParseError error) =>
             LogMessage(LogLevel.Error, $"{error}",
-                ErrorCat.Abps, ErrorCode.ParseError, new(error));
+                ErrorCat.Build, ErrorCode.ParseError, new(error));
 
         public bool LogException(
             LogLevel level, Exception e, bool withStackTrace = true, string? message = null,
             [ValueProvider(ErrorProvider.Cat)] string? category = null,
             [ValueProvider(ErrorProvider.Code)] string? code = null,
-            bool unwrapErrorRecord = true)
+            bool unwrapErrorRecord = true, CallStack? stack = null, string? helpLink = null)
         {
             //Exts.LaunchDebugger();
             if (unwrapErrorRecord && e is RuntimeException { ErrorRecord: var error }) {
@@ -174,22 +222,16 @@ internal class PowerShellHost : PSHost
               + e.Message
               + (withStackTrace && e.StackTrace?.Length > 0 ? $"{Endl}{e.StackTrace}" : "");
             LogMessage(level, text,
-                category ?? ErrorCat.Abps,
-                code ?? GetExceptionErrorCode(e), new());
+                category ?? ErrorCat.Build, code ?? GetExceptionErrorCode(e),
+                stack ?? CallStack.Empty, helpLink);
             return false;
         }
 
         public void LogMessage(
             LogLevel level, string message,
             [ValueProvider(ErrorProvider.Cat)] string category,
-            [ValueProvider(ErrorProvider.Code)] string code) =>
-            LogMessage(level, message, category, code, new());
-
-        private void LogMessage(
-            LogLevel level, string message,
-            [ValueProvider(ErrorProvider.Cat)] string category,
             [ValueProvider(ErrorProvider.Code)] string code,
-            CallStack stack)
+            CallStack stack, string? helpLink = null)
         {
             (stack, message) =
                 stack.IsEmpty ? (CallStack.Empty, message)
@@ -207,17 +249,17 @@ internal class PowerShellHost : PSHost
                     return;
                 case LogLevel.Warning:
                     ctx.Task.Log.LogWarning(
-                        category, code, null,
+                        category, code, null, helpLink,
                         stack.File, stack.Line, stack.Column, stack.EndLine, stack.EndColumn,
                         message);
                     break;
                 case LogLevel.Error:
                     ctx.Task.Log.LogError(
-                        category, code, null,
+                        category, code, null, helpLink,
                         stack.File, stack.Line, stack.Column, stack.EndLine, stack.EndColumn,
                         message);
                     break;
-                case LogLevel.Critical:
+                case LogLevel.Info:
                     ctx.Task.Log.LogCriticalMessage(
                         category, code, null,
                         stack.File, stack.Line, stack.Column, stack.EndLine, stack.EndColumn,
@@ -254,54 +296,6 @@ internal class PowerShellHost : PSHost
         public override void ScrollBufferContents(Rectangle source, Coordinates destination, Rectangle clip, BufferCell fill) => throw RawNotSupported();
         public override void SetBufferContents(Coordinates origin, BufferCell[,] contents) => throw RawNotSupported();
         public override void SetBufferContents(Rectangle rectangle, BufferCell fill) => throw RawNotSupported();
-    }
-
-    private class CallStack
-    {
-        public static readonly CallStack Empty = new();
-
-        public int Line { get; }
-        public int Column { get; }
-        public int EndLine { get; }
-        public int EndColumn { get; }
-        public string File { get; }
-
-        public bool IsFileEmpty => File.IsNullOrEmpty();
-        public bool IsEmpty => IsFileEmpty && Line == 0;
-
-        private CallStack(IScriptExtent? position, string? scriptName)
-        {
-            Line = position?.StartLineNumber ?? 0;
-            Column = position?.StartColumnNumber ?? 0;
-            EndLine = position?.EndLineNumber ?? 0;
-            EndColumn = position?.EndColumnNumber ?? 0;
-            File = scriptName ?? "";
-        }
-
-        internal CallStack(CallStackFrame? frame) : this(frame?.Position, frame?.ScriptName) { }
-
-        // TODO: Parse errors smarter, see https://github.com/rafd123/PowerBridge/blob/master/src/PowerBridge/Internal/LogEntryInfo.cs
-        internal CallStack(ErrorRecord error) : this(new CallStackFrame(error.InvocationInfo)) { }
-
-        public CallStack(ParseError error) : this(error.Extent, null) { }
-
-        public CallStack() : this(null, null) { }
-
-        /// <remarks>https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks</remarks>
-        public string ToFullBuildFormat(LogLevel level, string message, string cat, string code) =>
-            IsEmpty ? message : $"{FormatFile()}{FormatPosition()} : {cat} {level.ToBuildFormat()} {code} : {message}";
-
-        public string ToShortBuildFormat(string message) =>
-            IsEmpty ? message : $"{FormatFile()}{FormatPosition()} : {message}";
-
-        private string FormatFile() => File.NullIfEmpty() ?? "<ScriptBlock>";
-
-        private string FormatPosition() =>
-            Line == 0 ? ""
-            : Column == 0 ? EndLine == 0 ? $"{Line}" : $"{Line}-{EndLine}"
-            : EndColumn == 0 ? $"{Line},{Column}"
-            : EndColumn == 0 ? $"{Line},{Column}-{EndColumn}"
-            : $"{Line},{Column},{EndLine},{EndColumn}";
     }
 
     private static NonInteractiveException NonInteractive() => new();

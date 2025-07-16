@@ -11,7 +11,7 @@ public enum LogLevel
     MessageHigh,
     Warning,
     Error,
-    Critical,
+    Info,
 }
 
 [SuppressMessage("ReSharper", "SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault", Justification = "Intentional")]
@@ -25,11 +25,12 @@ public static class LogLevelExts
             _ => throw new ArgumentOutOfRangeException(nameof(@this), @this, null),
         };
 
-    public static string ToBuildFormat(this LogLevel @this) =>
+    public static MessageCategory ToMessageCategory(this LogLevel @this) =>
         @this switch {
-            MessageLow or MessageNormal or MessageHigh => "message",
-            Warning => "warning",
-            Error or Critical => "error",
+            >= MessageLow and <= MessageHigh => MessageCategory.Message,
+            Info => MessageCategory.Info,
+            Warning => MessageCategory.Warning,
+            Error => MessageCategory.Error,
             _ => throw new ArgumentOutOfRangeException(nameof(@this), @this, null),
         };
 }

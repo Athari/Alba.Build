@@ -9,14 +9,14 @@ public static class ErrorProvider
 
 public static class ErrorCat
 {
-    public const string Abps = "ABPS";
+    public const string Build = nameof(Build);
     public const string Style = nameof(Style);
     public const string Usage = nameof(Usage);
 }
 
 public static class ErrorCode
 {
-    public const string Prefix = ErrorCat.Abps;
+    public const string Prefix = "ABPS";
 
     public const string ArgumentError = $"{Prefix}101";
     public const string ParseError = $"{Prefix}102";
@@ -30,7 +30,10 @@ public static class ErrorCode
 
     public const string WriteHostError = $"{Prefix}301";
     public const string WriteHostWarning = $"{Prefix}302";
-    public const string WriteHostDefault = $"{Prefix}303";
+    public const string WriteHostInfo = $"{Prefix}303";
     public const string WriteHostVerbose = $"{Prefix}304";
     public const string WriteHostDebug = $"{Prefix}305";
+    public const string WriteHostMessage = $"{Prefix}306";
+    public const string WriteBuildMessage = $"{Prefix}307";
+    public const string WriteBuildError = $"{Prefix}308";
 }
