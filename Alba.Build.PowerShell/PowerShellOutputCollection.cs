@@ -3,7 +3,7 @@ using System.Management.Automation;
 
 namespace Alba.Build.PowerShell;
 
-internal class PowerShellOutputCollection(PSShell shell, PowerShellHost host) : Collection<PSObject>
+internal class PowerShellOutputCollection(PowerShellTaskContext ctx) : Collection<PSObject>
 {
     private const string FormatClassIdProperty = "ClassId2e4f51ef21dd47e99d3c952918aff9cd";
     private const string FormatEndClassId = "cf522b78d86c486691226b40aa69e95c";
@@ -25,7 +25,7 @@ internal class PowerShellOutputCollection(PSShell shell, PowerShellHost host) : 
     private void ProcessNewItem(PSObject item)
     {
         if (PSObjectToString(item) is { } s)
-            host.UI.Write(s);
+            ctx.Host.UIX.Write(s);
     }
 
     private string? PSObjectToString(PSObject o)
@@ -34,20 +34,14 @@ internal class PowerShellOutputCollection(PSShell shell, PowerShellHost host) : 
             return "null";
 
         if (o.Properties[FormatClassIdProperty]?.Value is not string classId)
-            return CallOutString(o);
+            return ctx.Shell.GetOutString(o);
 
         _buffer.Add(o);
         if (classId != FormatEndClassId)
             return null;
 
-        var str = CallOutString(_buffer);
+        var str = ctx.Shell.GetOutString(_buffer);
         _buffer.Clear();
         return str;
-    }
-
-    private string? CallOutString(object o)
-    {
-        using var ps = shell.CreateNestedPowerShell();
-        return ps.AddCommand("Out-String").AddParameter("InputObject", o).Invoke<string>().FirstOrDefault();
     }
 }

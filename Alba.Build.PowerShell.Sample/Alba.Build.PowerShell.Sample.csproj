@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Platform">
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <UsingTask TaskName="ExecPowerShell" AssemblyFile="$(SolutionDir)Artifacts\debug_netstandard2.0\Alba.Build.PowerShell.dll" />
+
+  <Target Name="PowerShellHelloWorld" BeforeTargets="Build">
+    <PropertyGroup>
+      <HelloWorld>
+        <![CDATA[
+        [CmdletBinding()]
+        param(
+          $Args,
+          $SolutionDir,
+          [Alias("mpd", "ProjectDir")]
+          $MyProjectDir,
+          [Alias("String1")] $TargetFramework,
+          [Alias("Items1")] $Compile
+        )
+        $Args.Project | Format-Table
+        # $Args | Get-Member
+        $Compile | Format-Table
+        Write-Verbose "Verbose message"
+        Write-Debug "Verbose message"
+        Write-Warning "Hello world in $TargetFramework of $SolutionDir!"
+        Write-Warning "LangVersion: $(LangVersion)"
+        ]]>
+      </HelloWorld>
+    </PropertyGroup>
+    <ExecPowerShell Script="$(HelloWorld)" String1="$(TargetFramework)" Items1="@(Compile)" />
+    <!--<ExecPowerShell Script="$(SolutionDir)HelloWorld.ps1" />-->
+  </Target>
+
+
+</Project>

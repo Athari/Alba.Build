@@ -5,8 +5,10 @@
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
     <None Update="**\*.tt" Generator="TextTemplatingFileGenerator"
         LastGenOutput="%(Filename).g.cs" />
+    <!--<Compile Update="**\*.g.cs" DesignTime="True" AutoGen="True"
+        DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).tt" />-->
     <Compile Update="**\*.g.cs" DesignTime="True" AutoGen="True"
-        DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).tt" />
+        DependentUpon="$([System.String]::new('%(Filename)').Split('.')[0]).tt" />
   </ItemGroup>
 
 </Project>

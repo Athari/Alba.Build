@@ -1,7 +1,6 @@
 <Project>
 
   <PropertyGroup Label="Platform">
-    <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
     <LangVersion>preview</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -11,11 +10,6 @@
     <!-- IDE0130: Namespace does not match folder structure -->
     <NoWarn>$(NoWarn);IDE0130</NoWarn>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Using Include="Microsoft.Build.Utilities.Task" Alias="BuildTask" />
-    <Using Include="System.Management.Automation.PowerShell" Alias="PSShell" />
-  </ItemGroup>
 
   <PropertyGroup Label="Artifacts">
     <UseArtifactsOutput>true</UseArtifactsOutput>

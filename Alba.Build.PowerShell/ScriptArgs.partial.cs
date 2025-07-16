@@ -8,12 +8,23 @@ namespace Alba.Build.PowerShell;
 
 [SuppressMessage("ReSharper", "ParameterTypeCanBeEnumerable.Local", Justification = "Overloads for exact property types")]
 [SuppressMessage("Style", "IDE0305:Simplify collection initialization", Justification = "Don't touch LINQ")]
-public partial class ScriptParams
+public partial class ScriptArgs
 {
     private const string IncludeProp = "Include";
 
     public IReadOnlyDictionary<string, string> Project { get; internal set; } =
         new ReadOnlyDictionary<string, string>(new Dictionary<string, string>());
+
+    public bool TryGetNamedValue(string name, out object? value)
+    {
+        if (TryGetInputValue(name, out value))
+            return true;
+        if (Project.TryGetValue(name, out var s)) {
+            value = s;
+            return true;
+        }
+        return false;
+    }
 
     private static string? CopyFrom(string? from) =>
         from;
@@ -68,7 +79,7 @@ public partial class ScriptParams
     }
 
     [return: NotNullIfNotNull(nameof(item))]
-    public static Dictionary<string, string>? ItemToDictionary(ITaskItem? item)
+    private static Dictionary<string, string>? ItemToDictionary(ITaskItem? item)
     {
         if (item == null)
             return null;
@@ -81,7 +92,7 @@ public partial class ScriptParams
         return dic;
     }
 
-    public static ITaskItem? DictionaryToItem(Hashtable? dic)
+    private static ITaskItem? DictionaryToItem(Hashtable? dic)
     {
         if (!(dic?.Count > 0) || !dic.ContainsKey(IncludeProp))
             return null;

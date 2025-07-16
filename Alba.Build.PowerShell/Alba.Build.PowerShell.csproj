@@ -15,6 +15,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="Microsoft.Build.Utilities.Task" Alias="BuildTask" />
+    <Using Include="System.Management.Automation.PowerShell" Alias="PSShell" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.2.0" />
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" Condition="'$(Ancient)' == 'true'" />
     <PackageReference Include="System.Management.Automation" Version="7.2.0" Condition="'$(Ancient)' != 'true'" />
