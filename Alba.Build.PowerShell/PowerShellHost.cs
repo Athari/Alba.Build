@@ -133,7 +133,7 @@ internal class PowerShellHost : PSHost
 
     public override void SetShouldExit(int exitCode) { }
 
-    internal class PowerShellHostUserInterface(PowerShellTaskContext ctx) : PSHostUserInterface
+    internal class PowerShellHostUserInterface(PowerShellTaskContext ctx) : PSHostUserInterface, IHostUISupportsMultipleChoiceSelection
     {
         private readonly StringBuilder _buffer = new();
 
@@ -142,6 +142,7 @@ internal class PowerShellHost : PSHost
 
         public override Dictionary<string, PSObject> Prompt(string caption, string message, Collection<FieldDescription> descriptions) => throw NonInteractive();
         public override int PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, int defaultChoice) => throw NonInteractive();
+        public Collection<int> PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, IEnumerable<int> defaultChoices) => throw NonInteractive();
         public override PSCredential PromptForCredential(string caption, string message, string userName, string targetName) => throw NonInteractive();
         public override PSCredential PromptForCredential(string caption, string message, string userName, string targetName, PSCredentialTypes allowedCredentialTypes, PSCredentialUIOptions options) => throw NonInteractive();
         public override string ReadLine() => throw NonInteractive();

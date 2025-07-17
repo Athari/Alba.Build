@@ -3,9 +3,9 @@
   <!-- ReSharper disable VulnerablePackage -->
 
   <PropertyGroup Label="Platform">
-    <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net48</TargetFrameworks>
     <UseT4>true</UseT4>
-    <Ancient Condition="'$(TargetFramework)' == 'netstandard2.0'">true</Ancient>
+    <Ancient Condition="'$(TargetFramework)' == 'net48'">true</Ancient>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Ancient)' == 'true'">

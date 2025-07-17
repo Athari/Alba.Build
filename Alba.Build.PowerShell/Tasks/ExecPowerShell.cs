@@ -29,7 +29,7 @@ public partial class ExecPowerShell : BuildTask
 
     public bool LaunchDebugger { get; set; }
 
-    internal Dictionary<string, object> EnvironmentDictionary { get; private set; } = new();
+    internal Dictionary<string, object> EnvironmentDictionary { get; private set; } = [ ];
 
     public override bool Execute()
     {
@@ -37,8 +37,8 @@ public partial class ExecPowerShell : BuildTask
             Exts.LaunchDebugger();
 
         EnvironmentDictionary = (EnvironmentVariables ?? [ ])
-            .Select(v => v.Split('=', 2, StringSplitOptions.TrimEntries))
-            .ToDictionarySafeOIC(v => v[0], object (v) => v.ElementAtOrDefault(1) ?? "");
+            .Select(v => v.Split([ '=' ], 2))
+            .ToDictionarySafeOIC(v => v[0].Trim(), object (v) => v.ElementAtOrDefault(1)?.Trim() ?? "");
         var args = new ScriptArgs();
         args.CopyFromTask(this);
 

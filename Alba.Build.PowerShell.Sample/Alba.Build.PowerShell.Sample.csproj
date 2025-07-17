@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup Label="Platform">
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
 
-  <UsingTask TaskName="ExecPowerShell" AssemblyFile="$(SolutionDir)Artifacts\debug_netstandard2.0\Alba.Build.PowerShell.dll" />
+  <UsingTask TaskName="ExecPowerShell" AssemblyFile="$(SolutionDir)Artifacts\debug_net48\Alba.Build.PowerShell.dll" />
 
   <Target Name="PowerShellHelloWorld" BeforeTargets="Build">
     <PropertyGroup>
@@ -43,6 +43,5 @@
     <!--<ExecPowerShell Script="$(SolutionDir)HelloWorld.ps1" />-->
     <Warning Text="Hello" Code="WTF555" HelpLink="https://microsoft.com/" Condition="'' == ''" />
   </Target>
-
 
 </Project>
