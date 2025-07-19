@@ -2,51 +2,34 @@
 #nullable enable
 #pragma warning disable
 
-#if ANCIENT
-
 using System.Runtime.CompilerServices;
 
-namespace System
+namespace System;
+
+internal static partial class LocalAppContextSwitches
 {
-    internal static partial class LocalAppContextSwitches
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool GetCachedSwitchValue(string switchName, ref int cachedSwitchValue) =>
+        cachedSwitchValue switch {
+            < 0 => false,
+            > 0 => true,
+            _ => GetCachedSwitchValueInternal(switchName, ref cachedSwitchValue),
+        };
+
+    private static bool GetCachedSwitchValueInternal(string switchName, ref int cachedSwitchValue)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool GetCachedSwitchValue(string switchName, ref int cachedSwitchValue)
-        {
-            if (cachedSwitchValue < 0) return false;
-            if (cachedSwitchValue > 0) return true;
+        if (!AppContext.TryGetSwitch(switchName, out bool isSwitchEnabled))
+            isSwitchEnabled = GetSwitchDefaultValue(switchName);
+        AppContext.TryGetSwitch(@"TestSwitch.LocalAppContext.DisableCaching", out bool disableCaching);
+        if (!disableCaching)
+            cachedSwitchValue = isSwitchEnabled ? 1 : -1;
+        return isSwitchEnabled;
+    }
 
-            return GetCachedSwitchValueInternal(switchName, ref cachedSwitchValue);
-        }
-
-        private static bool GetCachedSwitchValueInternal(string switchName, ref int cachedSwitchValue)
-        {
-            bool isSwitchEnabled;
-        
-            bool hasSwitch = AppContext.TryGetSwitch(switchName, out isSwitchEnabled);
-            if (!hasSwitch)
-            {
-                isSwitchEnabled = GetSwitchDefaultValue(switchName);
-            }
-
-            AppContext.TryGetSwitch(@"TestSwitch.LocalAppContext.DisableCaching", out bool disableCaching);
-            if (!disableCaching)
-            {
-                cachedSwitchValue = isSwitchEnabled ? 1 : -1;
-            }
-
-            return isSwitchEnabled;
-        }
-
-        private static bool GetSwitchDefaultValue(string switchName)
-        {
-            if (switchName == "Switch.System.Runtime.Serialization.SerializationGuard")
-            {
-                return true;
-            }
-        
-            return false;
-        }
+    private static bool GetSwitchDefaultValue(string switchName)
+    {
+        if (switchName == "Switch.System.Runtime.Serialization.SerializationGuard")
+            return true;
+        return false;
     }
 }
-#endif

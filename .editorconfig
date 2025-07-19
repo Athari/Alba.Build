@@ -230,6 +230,21 @@ resharper_separate_local_functions_with_jump_statement_highlighting = none
 resharper_string_literal_typo_highlighting = none
 resharper_xaml_binding_with_context_not_resolved_highlighting = hint
 
+[*.{xaml,axaml}]
+
+tab_width = 2
+indent_size = 2
+
+[*.{xaml,axaml}.cs]
+
+dotnet_diagnostic.CS1998.severity = none # This async method lacks await operators # Consistency > minor perf diff
+dotnet_diagnostic.CA2007.severity = none # Do not directly await a Task # Avalonia code cares about Dispatcher
+
+[*Model.cs]
+
+dotnet_diagnostic.CS1998.severity = none # This async method lacks await operators # Consistency > minor perf diff
+dotnet_diagnostic.CA2007.severity = none # Do not directly await a Task # Avalonia code cares about Dispatcher
+
 [*.{cs,vb}]
 
 # Symbol specifications

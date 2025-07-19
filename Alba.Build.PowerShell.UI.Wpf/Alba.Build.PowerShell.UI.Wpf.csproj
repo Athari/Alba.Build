@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ReSharper disable VulnerablePackage -->
+
+  <PropertyGroup Label="Platform">
+    <TargetFrameworks>net6.0-windows;net48</TargetFrameworks>
+    <UseT4>true</UseT4>
+    <UseWPF>true</UseWPF>
+    <UseAnyPowerShell>true</UseAnyPowerShell>
+    <UseBuildUtilities>true</UseBuildUtilities>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup Label="Packages">
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alba.Build.PowerShell\Alba.Build.PowerShell.csproj" />
+  </ItemGroup>
+
+  <Target Name="SkiaSharpRemoveMusl" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <None Remove="@(None)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(FullPath)',
+          '(?ixn) ( \. (so|dylib) | (x86|arm64) .* (libHarfBuzzSharp|libSkiaSharp) \. dll ) $')) " />
+      <Content Remove="@(Content)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(FullPath)', 
+          '(?ixn) ( \. (so|dylib) | (x86|arm64) .* (libHarfBuzzSharp|libSkiaSharp) \. dll ) $')) " />
+    </ItemGroup>
+  </Target>
+
+</Project>

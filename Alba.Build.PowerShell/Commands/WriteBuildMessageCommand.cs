@@ -4,7 +4,7 @@ using Microsoft.Build.Framework;
 namespace Alba.Build.PowerShell.Commands;
 
 [Cmdlet(VerbsCommunications.Write, "BuildMessage")]
-public class WriteBuildMessageCommand : PowerShellCommand
+public class WriteBuildMessageCommand : PSBuildCommand
 {
     [Parameter(Position = 0, Mandatory = true)]
     public MessageCategory Category { get; set; } = MessageCategory.Message;
@@ -35,28 +35,28 @@ public class WriteBuildMessageCommand : PowerShellCommand
 
     protected override void ProcessRecord()
     {
-        var host = Context.Host;
+        var host = Ctx.Host;
         var logLevel = Category.ToLogLevel(Importance);
         var cat = Subcategory ?? ErrorCat.Build;
 
         switch (Error) {
             case Exception e:
-                host.UIX.LogException(logLevel, e, WithStackTrace, Message,
+                host.UI.LogException(logLevel, e, WithStackTrace, Message,
                     cat, Code ?? ErrorCode.WriteBuildError, unwrapErrorRecord: true, new(Origin), HelpLink);
                 break;
 
             case ErrorRecord error:
-                string text = host.UIX.GetErrorRecordMessageText(error, WithStackTrace);
+                string text = host.UI.GetErrorRecordMessageText(error, WithStackTrace);
                 if (error is { Exception: { } inner })
-                    host.UIX.LogException(logLevel, inner, WithStackTrace, text,
+                    host.UI.LogException(logLevel, inner, WithStackTrace, text,
                         cat, Code ?? ErrorCode.WriteBuildError, unwrapErrorRecord: false, new(Origin), HelpLink);
                 else
-                    host.UIX.LogMessage(logLevel, text,
+                    host.UI.LogMessage(logLevel, text,
                         cat, Code ?? ErrorCode.WriteBuildError, Origin != null ? new(Origin) : new(error), HelpLink);
                 break;
 
             case null:
-                host.UIX.LogMessage(logLevel, Message, cat, Code ?? ErrorCode.WriteBuildMessage, new(Origin), HelpLink);
+                host.UI.LogMessage(logLevel, Message, cat, Code ?? ErrorCode.WriteBuildMessage, new(Origin), HelpLink);
                 break;
 
             default:

@@ -5,10 +5,38 @@
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
     <None Update="**\*.tt" Generator="TextTemplatingFileGenerator"
         LastGenOutput="%(Filename).g.cs" />
-    <!--<Compile Update="**\*.g.cs" DesignTime="True" AutoGen="True"
-        DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).tt" />-->
     <Compile Update="**\*.g.cs" DesignTime="True" AutoGen="True"
-        DependentUpon="$([System.String]::new('%(Filename)').Split('.')[0]).tt" />
+        DependentUpon="%(RelativeDir)$([System.String]::new('%(Filename)').Split('.')[0]).tt" />
+  </ItemGroup>
+
+  <!-- DOC: Enabled unsafe for polyfills -->
+  <PropertyGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- DOC: UseAnyPowerShell property: Reference both Core PowerShell and Windows PowerShell -->
+  <PropertyGroup Condition="'$(UseAnyPowerShell)' == 'true' And '$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <WindowsPowerShell>true</WindowsPowerShell>
+    <DefineConstants>$(DefineConstants);WINDOWS_POWERSHELL</DefineConstants>
+    <!--<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UseAnyPowerShell)' == 'true'">
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" Condition="'$(WindowsPowerShell)' == 'true'" />
+    <PackageReference Include="System.Management.Automation" Version="7.2.0" Condition="'$(WindowsPowerShell)' != 'true'" />
+    <Using Include="System.Management.Automation.PowerShell" Alias="PSShell" />
+  </ItemGroup>
+
+  <!-- DOC: UseBuildUtilities property: Reference MSBuild Utilities -->
+  <ItemGroup Condition="'$(UseBuildUtilities)' == 'true'">
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.2.0" />
+    <Using Include="Microsoft.Build.Utilities.Task" Alias="BuildTask" />
+  </ItemGroup>
+
+  <!-- DOC: Display configuration items under the Properties project folder -->
+  <ItemGroup>
+    <None Update="**\*.DotSettings;**\*.user" Link="Properties\$([System.String]::Copy(%(Filename)).Replace($(MSBuildProjectName), ''))%(Extension)" />
+    <!--<None Update="*.manifest" Link="Properties\%(Filename)%(Extension)" />-->
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,88 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #><#@ output extension="*.nope.cs" #>
+<#@ include file="$(ProjectDir)\Common.ttinclude" #>
+<#
+    var count = 4;
+    List<(string Name, string Type, string FriendlyType)> types = [
+        ("String",  "string?",      "string?"                           ),
+        ("Strings", "string[]?",    "List<string>?"                     ),
+        ("Item",    "ITaskItem?",   "Dictionary<string, string>?"       ),
+        ("Items",   "ITaskItem[]?", "List<Dictionary<string, string>>?" ),
+    ];
+    string ToPS(string t) => t.Replace("Dictionary<string, string>", "Hashtable").Replace("?", "");
+    using var t4 = GetT4();
+    //System.Diagnostics.Debugger.Launch();
+    t4.PrefixFileNames = true;
+    t4.WriteHeader(GenerateHeader);
+    t4.WriteFile("g.cs", GenerateScriptArgs);
+    t4.WriteFile("ExecPowerShellTask.g.cs", GenerateExecPowerShell);
+#>
+<# void GenerateHeader() { #>
+#nullable enable
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using Alba.Build.PowerShell.Tasks;
+using Microsoft.Build.Framework;
+
+<# } #>
+<# void GenerateScriptArgs() { #>
+namespace Alba.Build.PowerShell;
+
+public partial class ScriptArgs
+{
+<# foreach (var type in types) for (var i = 1; i <= count; i++) { #>
+    public <#=type.FriendlyType#> <#=type.Name#><#=i#> { get; set; }
+<# } #>
+
+<# foreach (var type in types) for (var i = 1; i <= count; i++) { #>
+    public <#=ToPS(type.FriendlyType)#> Out<#=type.Name#><#=i#> { get; set; } = <#=type.Type == "string?" ? "\"\"" : "[ ]"#>;
+<# } #>
+
+    public void CopyFromTask(ExecPowerShellTask task)
+    {
+<#    foreach (var type in types) for (var i = 1; i <= count; i++) { #>
+        <#=type.Name#><#=i#> = CopyFrom(task.<#=type.Name#><#=i#>);
+<#    } #>
+    }
+
+    public void CopyToTask(ExecPowerShellTask task)
+    {
+<#    foreach (var type in types) for (var i = 1; i <= count; i++) { #>
+        task.Out<#=type.Name#><#=i#> = CopyFrom(Out<#=type.Name#><#=i#>);
+<#    } #>
+<#    foreach (var type in types.Where(t => !t.Type.Contains("string"))) for (var i = 1; i <= count; i++) { #>
+        Update(<#=type.Name#><#=i#>, task.<#=type.Name#><#=i#>);
+<#    } #>
+    }
+
+    public bool TryGetInputValue(string name, out object? value)
+    {
+        (bool Success, object? Value) ret = name switch {
+            "Args" => (true, this),
+<# foreach (var type in types) for (var i = 1; i <= count; i++) { #>
+            nameof(<#=type.Name#><#=i#>) => (true, <#=type.Name#><#=i#>),
+<# } #>
+            _ => (false, null),
+        };
+        value = ret.Value;
+        return ret.Success;
+    }
+}
+<# } #>
+<# void GenerateExecPowerShell() { #>
+namespace Alba.Build.PowerShell.Tasks;
+
+public partial class ExecPowerShellTask
+{
+<# foreach (var type in types) for (var i = 1; i <= count; i++) { #>
+    public <#=type.Type#> <#=type.Name#><#=i#> { get; set; }
+<# } #>
+<# foreach (var type in types) for (var i = 1; i <= count; i++) { #>
+<#     if (type.Type.Contains("string")) { #>
+    [Output] public <#=type.Type#> Out<#=type.Name#><#=i#> { get; set; }
+<#     } else { #>
+    [Output] public <#=type.Type#> Out<#=type.Name#><#=i#> { get; set; }
+<#     } #>
+<# } #>
+}
+<# } #>

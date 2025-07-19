@@ -3,15 +3,15 @@
 namespace Alba.Build.PowerShell.Commands;
 
 [Cmdlet(VerbsCommunications.Write, nameof(LogLevel.Info))]
-public class WriteInfoCommand : PowerShellCommand
+public class WriteInfoCommand : PSBuildCommand
 {
     [Parameter(Position = 0, Mandatory = true, ValueFromPipeline = true), AllowEmptyString, Alias("Msg")]
     public string Message { get; set; } = "";
 
     protected override void ProcessRecord()
     {
-        var host = Context.Host;
+        var host = Ctx.Host;
 
-        host.UIX.WriteInfoLine(Message);
+        host.UI.WriteInfoLine(Message);
     }
 }

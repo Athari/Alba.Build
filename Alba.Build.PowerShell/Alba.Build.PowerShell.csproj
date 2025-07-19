@@ -5,24 +5,8 @@
   <PropertyGroup Label="Platform">
     <TargetFrameworks>net6.0;net48</TargetFrameworks>
     <UseT4>true</UseT4>
-    <Ancient Condition="'$(TargetFramework)' == 'net48'">true</Ancient>
+    <UseAnyPowerShell>true</UseAnyPowerShell>
+    <UseBuildUtilities>true</UseBuildUtilities>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Ancient)' == 'true'">
-    <DefineConstants>$(DefineConstants);ANCIENT</DefineConstants>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <Using Include="Microsoft.Build.Utilities.Task" Alias="BuildTask" />
-    <Using Include="System.Management.Automation.PowerShell" Alias="PSShell" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.2.0" />
-    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" Condition="'$(Ancient)' == 'true'" />
-    <PackageReference Include="System.Management.Automation" Version="7.2.0" Condition="'$(Ancient)' != 'true'" />
-  </ItemGroup>
 
 </Project>

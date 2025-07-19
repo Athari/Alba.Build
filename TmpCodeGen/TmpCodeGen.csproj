@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="envdte100" Version="17.14.40260" />
+    <PackageReference Include="Microsoft.VisualStudio.TextTemplating.15.0" Version="16.10.31320.204" />
+    <PackageReference Include="Microsoft.VisualStudio.TextTemplating.VSHost.15.0" Version="16.10.31321.278" />
+  </ItemGroup>
+
+</Project>

@@ -4,7 +4,8 @@
     <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
 
-  <UsingTask TaskName="ExecPowerShell" AssemblyFile="$(SolutionDir)Artifacts\debug_net48\Alba.Build.PowerShell.dll" />
+  <UsingTask TaskName="ExecPowerShellTask" AssemblyFile="$(SolutionDir)Artifacts\debug_net48\Alba.Build.PowerShell.dll" />
+  <UsingTask TaskName="ExecPowerShellWpfTask" AssemblyFile="$(SolutionDir)Artifacts\debug_net48\Alba.Build.PowerShell.UI.Wpf.dll" />
 
   <Target Name="PowerShellHelloWorld" BeforeTargets="Build">
     <PropertyGroup>
@@ -19,9 +20,14 @@
           [Alias("String1")] $TargetFramework,
           [Alias("Items1")] $Compile
         )
+        $Host.UI.RawUI.WindowTitle = "New window title "
+        for ($i = 0; $i -lt 10; $i++) {
+            $Host.UI.RawUI.WindowTitle += "+"
+            Start-Sleep -Seconds 1
+        }
 
         #$Args.Project | Format-Table | Out-String | Write-Warning
-        #$Compile
+        #$Compile | Write-Host
 
         Write-Debug "Debug message"
         Write-Verbose "Verbose message"
@@ -36,11 +42,16 @@
 
         #$s = Read-Host
         #$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+
+        $Host.UI.RawUI.WindowTitle = "Window title 2"
         ]]>
       </HelloWorld>
     </PropertyGroup>
-    <ExecPowerShell Script="$(HelloWorld)" String1="$(TargetFramework)" Items1="@(Compile)" />
-    <!--<ExecPowerShell Script="$(SolutionDir)HelloWorld.ps1" />-->
+    <!--<ExecPowerShell Script="$(HelloWorld)" String1="$(TargetFramework)" Items1="@(Compile)" />-->
+    <ExecPowerShellWpfTask Script="$(HelloWorld)" String1="$(TargetFramework)" Items1="@(Compile)"
+        OutputExceptionStackTraces="true"
+        WorkingDirectory="$(SolutionDir)Artifacts\debug_net48"
+        />
     <Warning Text="Hello" Code="WTF555" HelpLink="https://microsoft.com/" Condition="'' == ''" />
   </Target>
 
