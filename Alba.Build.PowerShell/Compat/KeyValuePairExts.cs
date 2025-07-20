@@ -8,7 +8,7 @@ using System.ComponentModel;
 
 namespace System.Collections.Generic;
 
-internal static class KeyValuePairExtensions
+internal static class KeyValuePairExts
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static void Deconstruct<TKey, TValue>(this KeyValuePair<TKey, TValue> @this, out TKey key, out TValue value)

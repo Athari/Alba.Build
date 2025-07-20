@@ -6,7 +6,7 @@
 
 namespace System.Ling;
 
-internal static class Enumerable
+internal static class EnumerableExts
 {
     public static HashSet<TSource> ToHashSet<TSource>(this IEnumerable<TSource> source) =>
         source.ToHashSet(comparer: null);

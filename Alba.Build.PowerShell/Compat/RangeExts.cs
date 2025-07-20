@@ -6,7 +6,7 @@
 
 namespace System.Runtime.CompilerServices;
 
-internal static class RuntimeHelpers
+internal static class RangeExts
 {
     public static int get_IndexerExtension(this int[] array, Index index) =>
         index.IsFromEnd ? array[array.Length - index.Value] : array[index.Value];

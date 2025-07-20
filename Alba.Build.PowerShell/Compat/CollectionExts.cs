@@ -6,7 +6,7 @@
 
 namespace System.Collections.Generic;
 
-internal static class CollectionExtensions
+internal static class CollectionExts
 {
     public static TValue? GetValueOrDefault<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> @this, TKey key) =>
         @this.GetValueOrDefault(key, default!);

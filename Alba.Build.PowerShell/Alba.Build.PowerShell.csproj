@@ -15,8 +15,6 @@
     <PolyAnalysisAttributes Include="Allow0;Disallow0;Maybe0;Maybe0W;Member1;Member1W;1;1If1;1W" />
     <PolyAnalysisAttributes Include="DoesNotReturn" />
     <PolyCompilerAttributes Include="CallerArgumentExpression" />
-    <Compile Remove="Compat\*.cs" />
-    <Compile Include="Compat\*Exts.cs" />
   </ItemGroup>
 
 </Project>
