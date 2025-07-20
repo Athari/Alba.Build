@@ -33,6 +33,20 @@
     <Using Include="Microsoft.Build.Utilities.Task" Alias="BuildTask" />
   </ItemGroup>
 
+  <!-- DOC: UsePolySharp property: Reference PolySharp and include specified types -->
+  <ItemGroup Condition="'$(UsePolySharp)' == 'true'">
+    <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" IncludeAssets="build; analyzers" />
+    <PolyInclude Include="@(PolySystem)" FullName="System.%(Identity)" />
+    <PolyInclude Include="@(PolyAnalysisAttributes)" FullName="$([System.String]::Copy('System.Diagnostics.CodeAnalysis.%(Identity)Attribute').Replace('0', 'Null').Replace('1', 'NotNull').Replace('W', 'When'))" />
+    <PolyInclude Include="@(PolyCompilerAttributes)" FullName="System.Runtime.CompilerServices.%(Identity)Attribute" />
+  </ItemGroup>
+  <Target Name="ResolvePolySharpIncludeGeneratedTypes" Condition="@(PolyInclude->Count()) != 0"
+      BeforeTargets="ConfigurePolySharpMSBuildProperties">
+    <PropertyGroup>
+      <PolySharpIncludeGeneratedTypes>$(PolySharpIncludeGeneratedTypes);@(PolyInclude-> '%(FullName)', ',')</PolySharpIncludeGeneratedTypes>
+    </PropertyGroup>
+  </Target>
+
   <!-- DOC: Display configuration items under the Properties project folder -->
   <ItemGroup>
     <None Update="**\*.DotSettings;**\*.user" Link="Properties\$([System.String]::Copy(%(Filename)).Replace($(MSBuildProjectName), ''))%(Extension)" />

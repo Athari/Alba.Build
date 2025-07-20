@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/~/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Alba.Build.sln.DotSettings" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+  </Folder>
+  <Project Path="Alba.Build.PowerShell.Sample/Alba.Build.PowerShell.Sample.csproj" />
+  <Project Path="Alba.Build.PowerShell.UI.Wpf/Alba.Build.PowerShell.UI.Wpf.csproj" />
+  <Project Path="Alba.Build.PowerShell/Alba.Build.PowerShell.csproj" />
+  <Project Path="TmpCodeGen/TmpCodeGen.csproj" />
+</Solution>
