@@ -63,10 +63,8 @@ internal class T4Manager : IDisposable
     public virtual string? GetCustomNamespaceFor(string fileName) => null;
     public string NamespaceFor(string fileName) => GetCustomNamespaceFor(fileName) ?? NamespaceHint;
 
-    public string ClassName
-    {
-        get
-        {
+    public string ClassName {
+        get {
             var name = _host.TemplateFile;
             var iDot = name.IndexOf('.');
             return iDot == -1 ? name : name.Substring(0, iDot);

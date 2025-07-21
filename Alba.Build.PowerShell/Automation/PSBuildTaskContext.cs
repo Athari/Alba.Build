@@ -5,8 +5,7 @@ namespace Alba.Build.PowerShell;
 internal class PSBuildTaskContext(PSShell shell, PSBuildHost host, ExecPowerShellTask task)
     : PSBaseTaskContext(shell, host, task)
 {
-    public new PSBuildHost Host
-    {
+    public new PSBuildHost Host {
         get => (PSBuildHost)base.Host;
         private protected set => base.Host = value;
     }

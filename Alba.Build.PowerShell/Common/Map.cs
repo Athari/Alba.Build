@@ -33,14 +33,12 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary)
     bool ICollection.IsSynchronized => IdSafe?.IsSynchronized ?? false;
     object ICollection.SyncRoot => IdSafe?.SyncRoot ?? this;
 
-    public TValue this[TKey key]
-    {
+    public TValue this[TKey key] {
         get => TryGetItem(key, out TValue value) ? value : throw KeyNotFound($"{key}");
         set => IfNotReadOnly(() => SetItem(key, value));
     }
 
-    object? IDictionary.this[object key]
-    {
+    object? IDictionary.this[object key] {
         get => TryGetItem(Guard.NotNullObject<TKey>(key), out TValue v) ? v : throw KeyNotFound($"{key}");
         set => IfNotReadOnly(() => SetItem(Guard.NotNullObject<TKey>(key), Guard.NullableOrNotNullObject<TValue>(value)));
     }

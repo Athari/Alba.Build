@@ -6,8 +6,7 @@ namespace Alba.Build.PowerShell;
 internal static class Env
 {
     [MaybeNull]
-    public static string CurrentDirectory
-    {
+    public static string CurrentDirectory {
         get => Directory.GetCurrentDirectory();
         set => Directory.SetCurrentDirectory(value);
     }

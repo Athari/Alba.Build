@@ -12,15 +12,13 @@ public partial class ExecPowerShellTask : BuildTask
     private bool _isFileSpecified;
 
     [field: MaybeNull]
-    public string Script
-    {
+    public string Script {
         get;
         set => SetSpecified(out field, value, out _isScriptSpecified);
     }
 
     [field: MaybeNull]
-    public string File
-    {
+    public string File {
         get;
         set => SetSpecified(out field, value, out _isFileSpecified);
     }
