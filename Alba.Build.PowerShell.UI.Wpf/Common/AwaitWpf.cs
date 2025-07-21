@@ -11,15 +11,9 @@ public static partial class AwaitWpf
     private static Thread? _UIThread;
     private static Dispatcher? _UIDispatcher;
 
-    public static Dispatcher UIDispatcher
-    {
+    public static Dispatcher UIDispatcher {
         get => _UIDispatcher ?? throw new InvalidOperationException($"{nameof(UIDispatcher)} not initialized yet.");
-        set
-        {
-            if (_UIDispatcher != null)
-                throw new InvalidOperationException($"{nameof(UIDispatcher)} already initialized.");
-            _UIDispatcher = value;
-        }
+        set => _UIDispatcher = _UIDispatcher == null ? value : throw new InvalidOperationException($"{nameof(UIDispatcher)} already initialized.");
     }
 
     public static void CreateUIDispatcher()

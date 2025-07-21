@@ -14,7 +14,7 @@ namespace Alba.Build.PowerShell.UI.Wpf.Properties;
 [SuppressMessage("ReSharper", "CheckNamespace")]
 file static class S
 {
-    public const string UrnGui = "urn:alba:powershell:avalonia";
-    public const string NsGui = "Alba.Build.PowerShell.Avalonia";
+    public const string UrnGui = "urn:alba:powershell:wpf";
+    public const string NsGui = "Alba.Build.PowerShell.UI.Wpf";
     public const string PrefixGui = "my";
 }

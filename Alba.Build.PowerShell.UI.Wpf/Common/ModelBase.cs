@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Alba.Build.PowerShell.UI.Wpf.Common;
 
-public class ModelBase : ObservableObject
+internal class ModelBase : ObservableObject
 {
     protected Disposable WithFlag(Action<bool> set)
     {

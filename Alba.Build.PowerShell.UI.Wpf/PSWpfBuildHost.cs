@@ -5,26 +5,24 @@ using System.Management.Automation.Runspaces;
 using System.Security;
 using System.Windows.Threading;
 using Alba.Build.PowerShell.UI.Wpf.Common;
+using Alba.Build.PowerShell.UI.Wpf.Main;
 using Alba.Build.PowerShell.UI.Wpf.Tasks;
 
 namespace Alba.Build.PowerShell.UI.Wpf;
 
 internal class PSWpfBuildHost : PSBuildHost
 {
-    protected new PSWpfBuildTaskContext Ctx
-    {
+    protected new PSWpfBuildTaskContext Ctx {
         get => (PSWpfBuildTaskContext)base.Ctx;
         private protected set => base.Ctx = value;
     }
 
-    public new PSWpfBuildHostUI UI
-    {
+    public new PSWpfBuildHostUI UI {
         get => (PSWpfBuildHostUI)_UI;
         private protected set => _UI = value;
     }
 
-    public new PSWpfBuildHostRawUI RawUI
-    {
+    public new PSWpfBuildHostRawUI RawUI {
         get => (PSWpfBuildHostRawUI)base.RawUI;
         private protected set => base.RawUI = value;
     }
@@ -44,6 +42,22 @@ internal class PSWpfBuildHost : PSBuildHost
         session.ThreadOptions = PSThreadOptions.ReuseThread;
         AwaitWpf.CreateUIDispatcher();
         AwaitWpf.UIDispatcher.UnhandledException += UIDispatcher_OnUnhandledException;
+
+        //var mre = new ManualResetEvent(false);
+        //AwaitWpf.UIDispatcher.InvokeAsync(() => {
+        //    _ = new Application {
+        //        MainWindow = Ctx.Window,
+        //        ShutdownMode = ShutdownMode.OnExplicitShutdown,
+        //        Resources = new() {
+        //            MergedDictionaries = {
+        //                new() { Source = new("/PresentationFramework.Luna,Version=4.0.0.0,PublicKeyToken=31bf3856ad364e35;component/themes/Luna.Metallic.xaml", UriKind.Relative) },
+        //            },
+        //        },
+        //    };
+        //    mre.Set();
+        //    Dispatcher.PushFrame(new());
+        //});
+        //mre.WaitOne();
     }
 
     protected override void InitRunspace(Runspace runspace)
@@ -59,15 +73,35 @@ internal class PSWpfBuildHost : PSBuildHost
             "Unhandled dispatcher exception.", ErrorCat.Build, ErrorCode.InteractiveError);
     }
 
+    private static async Task<Result<T>> CallWithTimeout<T>(Task<Result<T>> task, TimeSpan timeout)
+    {
+        return await await Task.WhenAny(task, CancelOnTimeout());
+
+        async Task<Result<T>> CancelOnTimeout()
+        {
+            await Task.Delay(timeout);
+            return Result.Cancel<T>();
+        }
+    }
+
+    private T CallUI<T>(Func<MainModel, Task<Result<T>>> ui) =>
+        CallWithTimeout(
+                Ctx.Invoke(() => {
+                    var task = ui(Ctx.Model);
+                    Ctx.Window.ShowFront();
+                    return task;
+                }),
+                Ctx.Task.UITimeoutSpan)
+            .GetResultSync().GetValueOrThrow();
+
     internal class PSWpfBuildHostUI(PSWpfBuildTaskContext ctx) : PSBuildHostUI(ctx)
     {
-        protected new PSWpfBuildTaskContext Ctx
-        {
+        protected new PSWpfBuildTaskContext Ctx {
             get => (PSWpfBuildTaskContext)base.Ctx;
             private protected set => base.Ctx = value;
         }
 
-        public override Dictionary<string, PSObject> Prompt(string caption, string message, Collection<FieldDescription> descriptions)
+        public override Dictionary<string, PSObject>? Prompt(string caption, string message, Collection<FieldDescription> descriptions)
         {
             throw NonInteractive();
         }
@@ -77,45 +111,42 @@ internal class PSWpfBuildHost : PSBuildHost
             throw NonInteractive();
         }
 
-        public override Collection<int> PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, IEnumerable<int> defaultChoices)
+        public override Collection<int>? PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, IEnumerable<int> defaultChoices)
         {
             throw NonInteractive();
         }
 
-        public override PSCredential PromptForCredential(string caption, string message, string userName, string targetName)
+        public override PSCredential? PromptForCredential(string caption, string message, string userName, string targetName)
         {
             return PromptForCredential(caption, message, userName, targetName,
                 PSCredentialTypes.Default, PSCredentialUIOptions.Default);
         }
 
-        public override PSCredential PromptForCredential(string caption, string message, string userName, string targetName, PSCredentialTypes allowedCredentialTypes, PSCredentialUIOptions options)
+        public override PSCredential? PromptForCredential(string caption, string message, string userName, string targetName, PSCredentialTypes allowedCredentialTypes, PSCredentialUIOptions options)
         {
             throw NonInteractive();
         }
 
-        public override string ReadLine()
-        {
-            throw NonInteractive();
-        }
+        public override string? ReadLine() =>
+            Ctx.Host.CallUI(m => m.ReadLine(
+                prompt: Buffer.Length > 0 ? Buffer.ToString().Trim() : LastMessage ?? "Please enter text"));
 
-        public override SecureString ReadLineAsSecureString()
+        public override SecureString? ReadLineAsSecureString()
         {
-            return ReadLine().Aggregate(new SecureString(), (s, c) => s.AppendChar(c));
+            return ReadLine()?.Aggregate(new SecureString(), (s, c) => s.AppendChar(c));
         }
     }
 
     internal class PSWpfBuildHostRawUI(PSWpfBuildTaskContext ctx) : PSBuildHostRawUI(ctx)
     {
-        protected new PSWpfBuildTaskContext Ctx
-        {
+        protected new PSWpfBuildTaskContext Ctx {
             get => (PSWpfBuildTaskContext)base.Ctx;
             private protected set => base.Ctx = value;
         }
 
-        public override string WindowTitle
-        {
-            get => Ctx.Invoke(() => Ctx.MainWindow.Title ?? "");
-            set => Ctx.Invoke(() => Ctx.MainWindow.Title = value);
+        public override string WindowTitle {
+            get => Ctx.Invoke(() => Ctx.Model.Title);
+            set => Ctx.Invoke(() => Ctx.Model.Title = value);
         }
     }
 }

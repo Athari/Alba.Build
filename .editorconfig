@@ -101,7 +101,7 @@ csharp_style_var_when_type_is_apparent = true:silent
 # R# overrides
 
 csharp_new_line_before_members_in_object_initializers = false
-csharp_new_line_before_open_brace = accessors,events,indexers,local_functions,methods,properties,types
+csharp_new_line_before_open_brace = local_functions,methods,types
 csharp_new_line_between_query_expression_clauses = false
 csharp_preferred_modifier_order = public, private, protected, internal, file, new, static, abstract, virtual, sealed, readonly, override, extern, unsafe, volatile, async, required:suggestion
 csharp_style_prefer_utf8_string_literals = true:suggestion
@@ -239,6 +239,7 @@ indent_size = 2
 
 dotnet_diagnostic.CS1998.severity = none # This async method lacks await operators # Consistency > minor perf diff
 dotnet_diagnostic.CA2007.severity = none # Do not directly await a Task # Avalonia code cares about Dispatcher
+resharper_redundant_extends_list_entry_highlighting = none # Redundant class or interface specification in base types list # Breaks code completion
 
 [*Model.cs]
 

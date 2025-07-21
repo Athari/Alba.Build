@@ -38,6 +38,7 @@
     <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" IncludeAssets="build; analyzers" />
     <PolyInclude Include="@(PolySystem)" FullName="System.%(Identity)" />
     <PolyInclude Include="@(PolyAnalysisAttributes)" FullName="$([System.String]::Copy('System.Diagnostics.CodeAnalysis.%(Identity)Attribute').Replace('0', 'Null').Replace('1', 'NotNull').Replace('W', 'When'))" />
+    <PolyInclude Include="@(PolyCompiler)" FullName="System.Runtime.CompilerServices.%(Identity)" />
     <PolyInclude Include="@(PolyCompilerAttributes)" FullName="System.Runtime.CompilerServices.%(Identity)Attribute" />
   </ItemGroup>
   <Target Name="ResolvePolySharpIncludeGeneratedTypes" Condition="@(PolyInclude->Count()) != 0"
@@ -52,5 +53,14 @@
     <None Update="**\*.DotSettings;**\*.user" Link="Properties\$([System.String]::Copy(%(Filename)).Replace($(MSBuildProjectName), ''))%(Extension)" />
     <!--<None Update="*.manifest" Link="Properties\%(Filename)%(Extension)" />-->
   </ItemGroup>
+
+  <Target Name="RemoveUnusedRuntimes" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <None Remove="@(None)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(FullPath)',
+          '(?ixn) ( \. (so|dylib) | (x86|arm64) .* (libHarfBuzzSharp|libSkiaSharp) \. dll ) $')) " />
+      <Content Remove="@(Content)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(FullPath)', 
+          '(?ixn) ( \. (so|dylib) | (x86|arm64) .* (libHarfBuzzSharp|libSkiaSharp) \. dll ) $')) " />
+    </ItemGroup>
+  </Target>
 
 </Project>

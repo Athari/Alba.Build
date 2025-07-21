@@ -4,8 +4,8 @@
     <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
 
-  <UsingTask TaskName="ExecPowerShellTask" AssemblyFile="$(SolutionDir)Artifacts\debug_net48\Alba.Build.PowerShell.dll" />
-  <UsingTask TaskName="ExecPowerShellWpfTask" AssemblyFile="$(SolutionDir)Artifacts\debug_net48\Alba.Build.PowerShell.UI.Wpf.dll" />
+  <UsingTask TaskName="ExecPowerShellTask" AssemblyFile="$(SolutionDir)Artifacts\debug_net48_win-x64\Alba.Build.PowerShell.dll" />
+  <UsingTask TaskName="ExecPowerShellWpfTask" AssemblyFile="$(SolutionDir)Artifacts\debug_net48_win-x64\Alba.Build.PowerShell.UI.Wpf.dll" />
 
   <Target Name="PowerShellHelloWorld" BeforeTargets="Build">
     <PropertyGroup>
@@ -20,10 +20,13 @@
           [Alias("String1")] $TargetFramework,
           [Alias("Items1")] $Compile
         )
-        $Host.UI.RawUI.WindowTitle = "New window title "
+
+        "Enter info message" | Write-Host
+        Read-Host | Write-Info
+        $Host.UI.RawUI.WindowTitle = "Loading"
         for ($i = 0; $i -lt 10; $i++) {
-            $Host.UI.RawUI.WindowTitle += "+"
-            Start-Sleep -Seconds 1
+            $Host.UI.RawUI.WindowTitle += "."
+            Start-Sleep -Seconds 0.2
         }
 
         #$Args.Project | Format-Table | Out-String | Write-Warning
@@ -40,7 +43,6 @@
         Write-BuildMessage Info "Custom info" -Subcategory Analysis -Code WTF888 -Help "https://learn.microsoft.com/visualstudio/msbuild/info-task"
         Write-BuildMessage Message "Custom message" -Subcategory Analysis -Code WTF777 -Imp High
 
-        #$s = Read-Host
         #$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
         $Host.UI.RawUI.WindowTitle = "Window title 2"
@@ -49,7 +51,7 @@
     </PropertyGroup>
     <!--<ExecPowerShell Script="$(HelloWorld)" String1="$(TargetFramework)" Items1="@(Compile)" />-->
     <ExecPowerShellWpfTask Script="$(HelloWorld)" String1="$(TargetFramework)" Items1="@(Compile)"
-        OutputExceptionStackTraces="true"
+        OutputExceptionStackTraces="true" UITheme="Luna.Metallic"
         WorkingDirectory="$(SolutionDir)Artifacts\debug_net48"
         />
     <Warning Text="Hello" Code="WTF555" HelpLink="https://microsoft.com/" Condition="'' == ''" />

@@ -28,6 +28,21 @@ public static class Await
     public static TaskSchedulerAwaiter GetAwaiter(this TaskFactory @this, bool alwaysYield = false) =>
         new(@this.Scheduler ?? throw new ArgumentNullException(nameof(@this)), alwaysYield);
 
+    public static WaitHandleAwaiter GetAwaiter(this WaitHandle @this) =>
+        new(@this);
+
+    public static WaitHandleAwaiter GetAwaiter(this CountdownEvent @this) =>
+        new(@this.WaitHandle);
+
+    public static WaitHandleAwaiter GetAwaiter(this ManualResetEventSlim @this) =>
+        new(@this.WaitHandle);
+
+    public static WaitHandleAwaiter GetAwaiter(this SemaphoreSlim @this) =>
+        new(@this.AvailableWaitHandle);
+
+    public static WaitHandleAwaiter GetAwaiter(this IAsyncResult @this) =>
+        new(@this.AsyncWaitHandle);
+
     public static TaskAwaiter<int> GetAwaiter(this Process process)
     {
         var tcs = new TaskCompletionSource<int>();
@@ -82,6 +97,21 @@ public static class Await
             syncContext.Post(Execute, continuation);
 
         public SynchronizationContextAwaiter GetAwaiter() => this;
+
+        public void GetResult() { }
+    }
+
+    public readonly struct WaitHandleAwaiter(WaitHandle handle) : IAwaiter<WaitHandleAwaiter>
+    {
+        public bool IsCompleted => handle.WaitOne(0);
+
+        public void OnCompleted(Action continuation) =>
+            ThreadPool.RegisterWaitForSingleObject(handle, Execute, WithExecutionContext(continuation), Timeout.Infinite, true);
+
+        public void UnsafeOnCompleted(Action continuation) =>
+            ThreadPool.UnsafeRegisterWaitForSingleObject(handle, Execute, continuation, Timeout.Infinite, true);
+
+        public WaitHandleAwaiter GetAwaiter() => this;
 
         public void GetResult() { }
     }

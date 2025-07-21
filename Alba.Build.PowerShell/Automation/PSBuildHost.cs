@@ -21,20 +21,17 @@ internal class PSBuildHost : PSBaseHost
         typeof(WriteInfoCommand),
     ];
 
-    protected new PSBuildTaskContext Ctx
-    {
+    protected new PSBuildTaskContext Ctx {
         get => (PSBuildTaskContext)base.Ctx;
         private protected set => base.Ctx = value;
     }
 
-    public new PSBuildHostUI UI
-    {
+    public new PSBuildHostUI UI {
         get => (PSBuildHostUI)_UI;
         private protected set => _UI = value;
     }
 
-    public new PSBuildHostRawUI RawUI
-    {
+    public new PSBuildHostRawUI RawUI {
         get => (PSBuildHostRawUI)base.RawUI;
         private protected set => base.RawUI = value;
     }
@@ -132,38 +129,40 @@ internal class PSBuildHost : PSBaseHost
 
     protected internal class PSBuildHostUI(PSBuildTaskContext ctx) : PSBaseHostUI(ctx)
     {
-        private readonly StringBuilder _buffer = new();
+        private protected readonly StringBuilder Buffer = new();
+        private protected string? LastMessage;
 
-        protected new PSBuildTaskContext Ctx
-        {
+        protected new PSBuildTaskContext Ctx {
             get => (PSBuildTaskContext)base.Ctx;
             private protected set => base.Ctx = value;
         }
 
-        public override Dictionary<string, PSObject> Prompt(string caption, string message, Collection<FieldDescription> descriptions) => throw NonInteractive();
+        public override Dictionary<string, PSObject>? Prompt(string caption, string message, Collection<FieldDescription> descriptions) => throw NonInteractive();
         public override int PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, int defaultChoice) => throw NonInteractive();
-        public override Collection<int> PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, IEnumerable<int> defaultChoices) => throw NonInteractive();
-        public override PSCredential PromptForCredential(string caption, string message, string userName, string targetName) => throw NonInteractive();
-        public override PSCredential PromptForCredential(string caption, string message, string userName, string targetName, PSCredentialTypes allowedCredentialTypes, PSCredentialUIOptions options) => throw NonInteractive();
-        public override string ReadLine() => throw NonInteractive();
-        public override SecureString ReadLineAsSecureString() => throw NonInteractive();
+        public override Collection<int>? PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, IEnumerable<int> defaultChoices) => throw NonInteractive();
+        public override PSCredential? PromptForCredential(string caption, string message, string userName, string targetName) => throw NonInteractive();
+        public override PSCredential? PromptForCredential(string caption, string message, string userName, string targetName, PSCredentialTypes allowedCredentialTypes, PSCredentialUIOptions options) => throw NonInteractive();
+        public override string? ReadLine() => throw NonInteractive();
+        public override SecureString? ReadLineAsSecureString() => throw NonInteractive();
 
         public override void Write(string message)
         {
             var lastNewLine = message.LastIndexOf('\n');
             if (lastNewLine == -1) {
-                _buffer.Append(message);
+                Buffer.Append(message);
                 return;
             }
 
-            var logMessage = _buffer + message[..lastNewLine].TrimEnd('\r', '\n');
-            if (logMessage.Length > 0)
+            var logMessage = Buffer + message[..lastNewLine].TrimEnd('\r', '\n');
+            if (logMessage.Length > 0) {
                 LogMessage(Ctx.Task.DefaultMessageImportance.ToLogLevel(), logMessage,
                     ErrorCat.Build, ErrorCode.WriteHostMessage, PSBuildCallStack.Empty);
+                LastMessage = logMessage;
+            }
 
             var remainder = message[(lastNewLine + 1)..];
-            _buffer.Clear();
-            _buffer.Append(remainder);
+            Buffer.Clear();
+            Buffer.Append(remainder);
         }
 
         public override void WriteDebugLine(string message) =>
@@ -269,7 +268,7 @@ internal class PSBuildHost : PSBaseHost
 
         public void Flush()
         {
-            _buffer.AppendLine();
+            Buffer.AppendLine();
         }
 
         public string GetErrorRecordMessageText(ErrorRecord error, bool? withStackTrace)
@@ -283,8 +282,7 @@ internal class PSBuildHost : PSBaseHost
 
     protected internal class PSBuildHostRawUI(PSBuildTaskContext ctx) : PSBaseHostRawUI(ctx)
     {
-        protected new PSBuildTaskContext Ctx
-        {
+        protected new PSBuildTaskContext Ctx {
             get => (PSBuildTaskContext)base.Ctx;
             private protected set => base.Ctx = value;
         }

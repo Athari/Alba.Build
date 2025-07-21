@@ -50,6 +50,18 @@ public static class TaskExts
 
     public static void NoAwait<T>(this ValueTask<T> _) { }
 
+    public static void GetResultSync(this Task @this) =>
+        @this.GetAwaiter().GetResult();
+
+    public static T GetResultSync<T>(this Task<T> @this) =>
+        @this.GetAwaiter().GetResult();
+
+    public static void GetResultSync(this ValueTask @this) =>
+        @this.GetAwaiter().GetResult();
+
+    public static T GetResultSync<T>(this ValueTask<T> @this) =>
+        @this.GetAwaiter().GetResult();
+
     public static Task OrCompleted(this Task? @this) =>
         @this ?? Task.CompletedTask;
 

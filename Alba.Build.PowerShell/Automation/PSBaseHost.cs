@@ -68,7 +68,7 @@ internal abstract class PSBaseHost : PSHost
 
         public sealed override PSHostRawUserInterface RawUI => Ctx.Host.RawUI;
 
-        public abstract Collection<int> PromptForChoice(
+        public abstract Collection<int>? PromptForChoice(
             string caption, string message, Collection<ChoiceDescription> choices, IEnumerable<int> defaultChoices);
 
         public override void Write(ConsoleColor foregroundColor, ConsoleColor backgroundColor, string message) =>

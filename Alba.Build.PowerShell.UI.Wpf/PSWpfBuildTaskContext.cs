@@ -10,39 +10,41 @@ namespace Alba.Build.PowerShell.UI.Wpf;
 internal class PSWpfBuildTaskContext(PSShell shell, PSWpfBuildHost host, ExecPowerShellWpfTask task)
     : PSBuildTaskContext(shell, host, task)
 {
-    [field: MaybeNull]
-    public MainWindow MainWindow
-    {
-        get
-        {
-            //Env.LaunchDebugger();
-            AwaitWpf.UIDispatcher.VerifyAccess();
-            if (field == null) {
-                field = new();
-                field.Show();
-                field.Activate();
-            }
-            return field;
-        }
-    }
+    public Dispatcher Dispatcher => AwaitWpf.UIDispatcher;
 
-    public new PSWpfBuildHost Host
-    {
+    [field: MaybeNull]
+    public MainWindow Window => InvokeVerified(() => field ??= new(this));
+
+    [field: MaybeNull]
+    public MainModel Model => InvokeVerified(() => field ??= new());
+
+    public new PSWpfBuildHost Host {
         get => (PSWpfBuildHost)base.Host;
         private protected set => base.Host = value;
     }
 
-    public new ExecPowerShellWpfTask Task
-    {
+    public new ExecPowerShellWpfTask Task {
         get => (ExecPowerShellWpfTask)base.Task;
         private protected set => base.Task = value;
     }
 
     public void Invoke(Action callback,
-        DispatcherPriority priority = DispatcherPriority.Normal, CancellationToken ct = default) =>
-        AwaitWpf.UIDispatcher.Invoke(callback, priority, ct);
+        DispatcherPriority priority, CancellationToken ct = default) =>
+        Dispatcher.Invoke(callback, priority, ct);
 
     public TResult Invoke<TResult>(Func<TResult> callback,
-        DispatcherPriority priority = DispatcherPriority.Normal, CancellationToken ct = default) =>
-        AwaitWpf.UIDispatcher.Invoke(callback, priority, ct);
+        DispatcherPriority priority, CancellationToken ct = default) =>
+        Dispatcher.Invoke(callback, priority, ct);
+
+    public void Invoke(Action callback, CancellationToken ct = default) =>
+        Invoke(callback, DispatcherPriority.Normal, ct);
+
+    public TResult Invoke<TResult>(Func<TResult> callback, CancellationToken ct = default) =>
+        Invoke(callback, DispatcherPriority.Normal, ct);
+
+    private static TResult InvokeVerified<TResult>(Func<TResult> callback)
+    {
+        AwaitWpf.UIDispatcher.VerifyAccess();
+        return callback();
+    }
 }

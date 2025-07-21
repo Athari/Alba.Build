@@ -12,9 +12,9 @@
 
   <ItemGroup Label="Polyfills">
     <PolySystem Include="Range;Index" />
-    <PolyAnalysisAttributes Include="Allow0;Disallow0;Maybe0;Maybe0W;Member1;Member1W;1;1If1;1W" />
-    <PolyAnalysisAttributes Include="DoesNotReturn" />
-    <PolyCompilerAttributes Include="CallerArgumentExpression" />
+    <PolyAnalysisAttributes Include="Allow0;Disallow0;Maybe0;Maybe0W;Member1;Member1W;1;1If1;1W;DoesNotReturn" />
+    <PolyCompiler Include="IsExternalInit" />
+    <PolyCompilerAttributes Include="CallerArgumentExpression;CompilerFeatureRequired;RequiredMember" />
   </ItemGroup>
 
 </Project>
