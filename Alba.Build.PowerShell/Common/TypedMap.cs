@@ -1,37 +1,25 @@
 ﻿using System.Collections;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Alba.Build.PowerShell;
 
-/// <summary>
-/// Map is to <see cref="Dictionary{TKey,TValue}"/> what <see cref="Collection{T}"/> is to <see cref="List{T}"/>.
-/// Allows to override methods of Dictionary.
-/// Some members of non-generic interface are only supported if the underlying dictionary supports <see cref="IDictionary"/> interface.
-/// </summary>
-[Serializable, ComVisible(false)]
 [DebuggerDisplay("Count = {Count}"), DebuggerTypeProxy(typeof(DictionaryDebugView<,>))]
-internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, CollectionOptions options = CollectionOptions.Default)
+internal class TypedMap<TKey, TValue>(IDictionary dictionary, CollectionOptions options = CollectionOptions.Default)
     : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
 {
-    private readonly IDictionary<TKey, TValue> _dictionary = Guard.NotNull(dictionary);
+    private readonly IDictionary _dictionary = Guard.NotNull(dictionary);
     private readonly CollectionOptions _options = options | CollectionOptions.None;
-
-    public Map() : this(new Dictionary<TKey, TValue>()) { }
-
-    private IDictionary? IdSafe => _dictionary as IDictionary;
-    private IDictionary Id => IdSafe ?? throw MissingNonGeneric();
 
     public int Count => _dictionary.Count;
     public bool IsReadOnly => _dictionary.IsReadOnly || (_options & CollectionOptions.ReadOnly) != 0;
+    private bool IsStrictApi => (_options & CollectionOptions.StrictApi) != 0;
 
-    bool IDictionary.IsFixedSize => IdSafe?.IsFixedSize ?? false;
-    bool ICollection.IsSynchronized => IdSafe?.IsSynchronized ?? false;
-    object ICollection.SyncRoot => IdSafe?.SyncRoot ?? this;
+    bool IDictionary.IsFixedSize => _dictionary.IsFixedSize;
+    bool ICollection.IsSynchronized => _dictionary.IsSynchronized;
+    object ICollection.SyncRoot => _dictionary.SyncRoot;
 
     // public
 
@@ -45,9 +33,11 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
         set => IfNotReadOnly(() => SetItem(Guard.NotNullObject<TKey>(key), Guard.NullableOrNotNullObject<TValue>(value)));
     }
 
-    public ICollection<TKey> Keys => _dictionary.Keys;
+    [field: MaybeNull]
+    public ICollection<TKey> Keys => field ??= new TypedCollection<TKey>(_dictionary.Keys);
 
-    public ICollection<TValue> Values => _dictionary.Values;
+    [field: MaybeNull]
+    public ICollection<TValue> Values => field ??= new TypedCollection<TValue>(_dictionary.Values);
 
     public void Add(TKey key, TValue value) =>
         IfNotReadOnly(() => AddItem(key, value));
@@ -78,9 +68,9 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
 
     // IDictionary
 
-    ICollection IDictionary.Keys => Id.Keys;
+    ICollection IDictionary.Keys => _dictionary.Keys;
 
-    ICollection IDictionary.Values => Id.Values;
+    ICollection IDictionary.Values => _dictionary.Values;
 
     void IDictionary.Add(object key, object? value) =>
         Add(Guard.NotNullObject<TKey>(key), Guard.NullableOrNotNullObject<TValue>(value));
@@ -92,7 +82,7 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
         IfNotReadOnly(() => Guard.IfNotNullObject<TKey>(key, k => RemoveItem(k)));
 
     IDictionaryEnumerator IDictionary.GetEnumerator() =>
-        Id.GetEnumerator();
+        _dictionary.GetEnumerator();
 
     // ICollection<KeyValuePair<TKey, TValue>>
 
@@ -108,17 +98,33 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
     // ICollection
 
     void ICollection.CopyTo(Array array, int index) =>
-        Id.CopyTo(array, index);
+        _dictionary.CopyTo(array, index);
 
     // IEnumerable
 
     IEnumerator IEnumerable.GetEnumerator() =>
-        Id.GetEnumerator();
+        _dictionary.GetEnumerator();
 
     // virtual
 
-    protected virtual bool TryGetItem(TKey key, out TValue value) =>
-        _dictionary.TryGetValue(key, out value!);
+    protected virtual bool TryGetItem(TKey key, out TValue value)
+    {
+        if (IsStrictApi) {
+            var contains = _dictionary.Contains(key);
+            value = contains ? (TValue)_dictionary[key]! : default!;
+            return contains;
+        }
+        else {
+            try {
+                value = (TValue)_dictionary[key]!;
+                return true;
+            }
+            catch (KeyNotFoundException) {
+                value = default!;
+                return false;
+            }
+        }
+    }
 
     protected virtual void SetItem(TKey key, TValue value) =>
         _dictionary[key] = value;
@@ -126,22 +132,35 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
     protected virtual void AddItem(TKey key, TValue value) =>
         _dictionary.Add(key, value);
 
-    protected virtual bool RemoveItem(TKey key) =>
-        _dictionary.Remove(key);
+    protected virtual bool RemoveItem(TKey key)
+    {
+        if (IsStrictApi) {
+            var contains = _dictionary.Contains(key);
+            if (contains)
+                _dictionary.Remove(key);
+            return contains;
+        }
+        else {
+            _dictionary.Remove(key);
+            return true;
+        }
+    }
 
     protected virtual void ClearItems() =>
         _dictionary.Clear();
 
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() =>
-        _dictionary.GetEnumerator();
+    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+    {
+        var e = _dictionary.GetEnumerator();
+        while (e.MoveNext())
+            yield return new((TKey)e.Key, (TValue)e.Value!);
+        (e as IDisposable)?.Dispose();
+    }
 
     // utility
 
     private static NotSupportedException ReadOnly() =>
         new("Dictionary is read-only.");
-
-    private static NotSupportedException MissingNonGeneric() =>
-        new("Underlying dictionary does not implement non-generic IDictionary interface.");
 
     private static KeyNotFoundException KeyNotFound(string key) =>
         new($"Key '{key}' not found.");
@@ -166,14 +185,5 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
     {
         GuardNotReadOnly();
         return fun();
-    }
-
-    [MemberNotNull(nameof(IdSafe))]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool GuardHasNonGeneric()
-    {
-        if (IdSafe == null)
-            throw MissingNonGeneric();
-        return true;
     }
 }

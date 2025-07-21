@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using Microsoft.Build.Framework;
@@ -104,8 +103,7 @@ public partial class ExecPowerShellTask : BuildTask
 
     private IDictionary<string, object?> GetNamedParameters(ScriptArgs args, ScriptCommandInfo scriptInfo)
     {
-        var env = Environment.GetEnvironmentVariables().OfType<DictionaryEntry>()
-            .ToDictionary(e => e.Key as string ?? "", e => e.Value);
+        var env = Environment.GetEnvironmentVariables().AsTyped<string, object?>();
         var parameters = new Dictionary<string, object?>();
         foreach (var param in scriptInfo.Parameters) {
             object? value;
