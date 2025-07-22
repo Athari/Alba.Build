@@ -1,9 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Alba.Build.PowerShell;
 
@@ -12,7 +10,6 @@ namespace Alba.Build.PowerShell;
 /// Allows to override methods of Dictionary.
 /// Some members of non-generic interface are only supported if the underlying dictionary supports <see cref="IDictionary"/> interface.
 /// </summary>
-[Serializable, ComVisible(false)]
 [DebuggerDisplay("Count = {Count}"), DebuggerTypeProxy(typeof(DictionaryDebugView<,>))]
 internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, CollectionOptions options = CollectionOptions.Default)
     : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
@@ -37,12 +34,12 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
 
     public TValue this[TKey key] {
         get => TryGetItem(key, out TValue value) ? value : throw KeyNotFound($"{key}");
-        set => IfNotReadOnly(() => SetItem(key, value));
+        set => GuardNotReadOnly(() => SetItem(key, value));
     }
 
     object? IDictionary.this[object key] {
         get => TryGetItem(Guard.NotNullObject<TKey>(key), out TValue v) ? v : throw KeyNotFound($"{key}");
-        set => IfNotReadOnly(() => SetItem(Guard.NotNullObject<TKey>(key), Guard.NullableOrNotNullObject<TValue>(value)));
+        set => GuardNotReadOnly(() => SetItem(Guard.NotNullObject<TKey>(key), Guard.NullableOrNotNullObject<TValue>(value)));
     }
 
     public ICollection<TKey> Keys => _dictionary.Keys;
@@ -50,7 +47,7 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
     public ICollection<TValue> Values => _dictionary.Values;
 
     public void Add(TKey key, TValue value) =>
-        IfNotReadOnly(() => AddItem(key, value));
+        GuardNotReadOnly(() => AddItem(key, value));
 
     public bool ContainsKey(TKey key) =>
         TryGetItem(key, out _);
@@ -61,11 +58,11 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
     public bool TryGetValue(TKey key, out TValue value) =>
         TryGetItem(key, out value);
 
-    public bool Remove(TKey key) => IfNotReadOnly(() =>
-        RemoveItem(key));
+    public bool Remove(TKey key) => 
+        IfNotReadOnly(() => RemoveItem(key));
 
     public void Clear() =>
-        IfNotReadOnly(ClearItems);
+        GuardNotReadOnly(ClearItems);
 
     public void CopyTo(KeyValuePair<TKey, TValue>[] array, int index) =>
         _dictionary.CopyTo(array, index);
@@ -147,33 +144,22 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
         new($"Key '{key}' not found.");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool GuardNotReadOnly()
+    private void GuardNotReadOnly()
     {
         if (IsReadOnly)
             throw ReadOnly();
-        return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void IfNotReadOnly(Action action)
+    private void GuardNotReadOnly(Action action)
     {
         GuardNotReadOnly();
         action();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T IfNotReadOnly<T>(Func<T> fun)
+    private bool IfNotReadOnly(Func<bool> fun)
     {
-        GuardNotReadOnly();
-        return fun();
-    }
-
-    [MemberNotNull(nameof(IdSafe))]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool GuardHasNonGeneric()
-    {
-        if (IdSafe == null)
-            throw MissingNonGeneric();
-        return true;
+        return !IsReadOnly && fun();
     }
 }

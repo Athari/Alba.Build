@@ -43,6 +43,22 @@ internal static class Guard
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IfNullableOrNotNullObject<T>(object? param, Action<T> action)
+    {
+        if (default(T) is null && param is null) {
+            action(default!);
+            return true;
+        }
+        else if (param is T p) {
+            action(p);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T NotNullObject<T>(object? param,
         [InvokerParameterName, CallerArgumentExpression(nameof(param))] string? paramName = null)
     {

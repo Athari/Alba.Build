@@ -25,40 +25,47 @@ internal class TypedMap<TKey, TValue>(IDictionary dictionary, CollectionOptions 
 
     public TValue this[TKey key] {
         get => TryGetItem(key, out TValue value) ? value : throw KeyNotFound($"{key}");
-        set => IfNotReadOnly(() => SetItem(key, value));
-    }
-
-    object? IDictionary.this[object key] {
-        get => TryGetItem(Guard.NotNullObject<TKey>(key), out TValue v) ? v : throw KeyNotFound($"{key}");
-        set => IfNotReadOnly(() => SetItem(Guard.NotNullObject<TKey>(key), Guard.NullableOrNotNullObject<TValue>(value)));
+        set => GuardNotReadOnly(() => SetItem(key, value));
     }
 
     [field: MaybeNull]
-    public ICollection<TKey> Keys => field ??= new TypedCollection<TKey>(_dictionary.Keys);
+    public ICollection<TKey> Keys => field ??= new ReadOnlyTypedCollection<TKey>(_dictionary.Keys);
 
     [field: MaybeNull]
-    public ICollection<TValue> Values => field ??= new TypedCollection<TValue>(_dictionary.Values);
-
-    public void Add(TKey key, TValue value) =>
-        IfNotReadOnly(() => AddItem(key, value));
-
-    public bool ContainsKey(TKey key) =>
-        TryGetItem(key, out _);
+    public ICollection<TValue> Values => field ??= new ReadOnlyTypedCollection<TValue>(_dictionary.Values);
 
     private bool Contains(TKey key, TValue value) =>
         TryGetItem(key, out TValue v) && EqualityComparer<TValue>.Default.Equals(v, value);
 
+    public bool ContainsKey(TKey key) =>
+        TryGetItem(key, out _);
+
     public bool TryGetValue(TKey key, out TValue value) =>
         TryGetItem(key, out value);
 
-    public bool Remove(TKey key) => IfNotReadOnly(() =>
-        RemoveItem(key));
+    public void Add(TKey key, TValue value) =>
+        GuardNotReadOnly(() => AddItem(key, value));
+
+    public bool Remove(TKey key) =>
+        IfNotReadOnly(() => RemoveItem(key));
 
     public void Clear() =>
-        IfNotReadOnly(ClearItems);
+        GuardNotReadOnly(ClearItems);
 
     public void CopyTo(KeyValuePair<TKey, TValue>[] array, int index) =>
         _dictionary.CopyTo(array, index);
+
+    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+    {
+        var it = _dictionary.GetEnumerator();
+        try {
+            while (it.MoveNext())
+                yield return new((TKey)it.Key, (TValue)it.Value!);
+        }
+        finally {
+            (it as IDisposable)?.Dispose();
+        }
+    }
 
     // IReadOnlyDictionary<TKey, TValue>
 
@@ -71,6 +78,11 @@ internal class TypedMap<TKey, TValue>(IDictionary dictionary, CollectionOptions 
     ICollection IDictionary.Keys => _dictionary.Keys;
 
     ICollection IDictionary.Values => _dictionary.Values;
+
+    object? IDictionary.this[object key] {
+        get => this[Guard.NotNullObject<TKey>(key)];
+        set => this[Guard.NotNullObject<TKey>(key)] = Guard.NullableOrNotNullObject<TValue>(value);
+    }
 
     void IDictionary.Add(object key, object? value) =>
         Add(Guard.NotNullObject<TKey>(key), Guard.NullableOrNotNullObject<TValue>(value));
@@ -149,14 +161,6 @@ internal class TypedMap<TKey, TValue>(IDictionary dictionary, CollectionOptions 
     protected virtual void ClearItems() =>
         _dictionary.Clear();
 
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-    {
-        var e = _dictionary.GetEnumerator();
-        while (e.MoveNext())
-            yield return new((TKey)e.Key, (TValue)e.Value!);
-        (e as IDisposable)?.Dispose();
-    }
-
     // utility
 
     private static NotSupportedException ReadOnly() =>
@@ -166,24 +170,22 @@ internal class TypedMap<TKey, TValue>(IDictionary dictionary, CollectionOptions 
         new($"Key '{key}' not found.");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool GuardNotReadOnly()
+    private void GuardNotReadOnly()
     {
         if (IsReadOnly)
             throw ReadOnly();
-        return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void IfNotReadOnly(Action action)
+    private void GuardNotReadOnly(Action action)
     {
         GuardNotReadOnly();
         action();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T IfNotReadOnly<T>(Func<T> fun)
+    private bool IfNotReadOnly(Func<bool> fun)
     {
-        GuardNotReadOnly();
-        return fun();
+        return !IsReadOnly && fun();
     }
 }
