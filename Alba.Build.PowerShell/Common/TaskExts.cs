@@ -2,7 +2,7 @@
 using System.Runtime.ExceptionServices;
 using JetBrains.Annotations;
 
-namespace Alba.Build.PowerShell.UI.Wpf.Common;
+namespace Alba.Build.PowerShell.Common;
 
 [PublicAPI]
 public static class TaskExts
@@ -16,17 +16,35 @@ public static class TaskExts
     public static ConfiguredTaskAwaitable<T> NoSync<T>(this Task<T> @this) =>
         ThisNotNull(@this).ConfigureAwait(false);
 
+  #if NETCOREAPP3_0_OR_GREATER
+
     public static ConfiguredAsyncDisposable NoSync<T>(this T @this) where T : IAsyncDisposable =>
         ThisNotNull(@this).ConfigureAwait(false);
 
     public static ConfiguredAsyncDisposable AsNoSync<T>(this T @this, out T var) where T : IAsyncDisposable =>
         ThisNotNull(@this).As(out var).ConfigureAwait(false);
 
+  #endif
+
+  #if NETCOREAPP1_0_OR_GREATER
+
     public static ConfiguredValueTaskAwaitable NoSync(this ValueTask @this) =>
         @this.ConfigureAwait(false);
 
     public static ConfiguredValueTaskAwaitable<T> NoSync<T>(this ValueTask<T> @this) =>
         @this.ConfigureAwait(false);
+
+    public static void NoAwait(this ValueTask _) { }
+
+    public static void NoAwait<T>(this ValueTask<T> _) { }
+
+    public static void GetResultSync(this ValueTask @this) =>
+        @this.GetAwaiter().GetResult();
+
+    public static T GetResultSync<T>(this ValueTask<T> @this) =>
+        @this.GetAwaiter().GetResult();
+
+  #endif
 
     public static void ContinueOnFaultedWith(this Task @this, Action<Task, AggregateException> onFaulted) =>
         @this.ContinueWith(t => onFaulted(t, t.Exception!), TaskContinuationOptions.OnlyOnFaulted);
@@ -46,20 +64,10 @@ public static class TaskExts
     public static void NoAwait<T>(this Task<T> @this, Action<Exception>? onFaulted = null) =>
         @this.ContinueOnFaultedWith((_, e) => onFaulted?.Invoke(e.InnerException ?? e));
 
-    public static void NoAwait(this ValueTask _) { }
-
-    public static void NoAwait<T>(this ValueTask<T> _) { }
-
     public static void GetResultSync(this Task @this) =>
         @this.GetAwaiter().GetResult();
 
     public static T GetResultSync<T>(this Task<T> @this) =>
-        @this.GetAwaiter().GetResult();
-
-    public static void GetResultSync(this ValueTask @this) =>
-        @this.GetAwaiter().GetResult();
-
-    public static T GetResultSync<T>(this ValueTask<T> @this) =>
         @this.GetAwaiter().GetResult();
 
     public static Task OrCompleted(this Task? @this) =>

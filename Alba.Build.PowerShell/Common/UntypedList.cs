@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 [DebuggerDisplay("Count = {Count}"), DebuggerTypeProxy(typeof(CollectionDebugView<>))]
 internal class UntypedList<T>(ICollection collection, CollectionOptions options = CollectionOptions.Default)
@@ -35,7 +35,7 @@ internal class UntypedList<T>(ICollection collection, CollectionOptions options 
         var it = GetEnumerator();
         try {
             while (it.MoveNext()) {
-                if (EqualityComparer<T>.Default.Equals(it.Current, item))
+                if (it.Current.EqualsValue(item))
                     return true;
             }
         }
@@ -51,7 +51,7 @@ internal class UntypedList<T>(ICollection collection, CollectionOptions options 
         var it = GetEnumerator();
         try {
             while (it.MoveNext()) {
-                if (EqualityComparer<T>.Default.Equals(it.Current, item))
+                if (it.Current.EqualsValue(item))
                     return index;
                 index++;
             }

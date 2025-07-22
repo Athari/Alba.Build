@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Windows;
+using Alba.Build.PowerShell.Common;
 using Alba.Build.PowerShell.UI.Wpf.Tasks;
 
 namespace Alba.Build.PowerShell.UI.Wpf.Main;

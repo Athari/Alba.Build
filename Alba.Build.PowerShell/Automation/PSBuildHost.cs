@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Security;
 using System.Text;
 using Alba.Build.PowerShell.Commands;
+using Alba.Build.PowerShell.Common;
 using Alba.Build.PowerShell.Tasks;
 using JetBrains.Annotations;
 using Microsoft.PowerShell;
@@ -137,11 +138,11 @@ internal class PSBuildHost : PSBaseHost
             private protected set => base.Ctx = value;
         }
 
-        public override Dictionary<string, PSObject>? Prompt(string caption, string message, Collection<FieldDescription> descriptions) => throw NonInteractive();
+        public override Dictionary<string, PSObject?>? Prompt(string caption, string message, Collection<FieldDescription> descriptions) => throw NonInteractive();
         public override int PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, int defaultChoice) => throw NonInteractive();
         public override Collection<int>? PromptForChoice(string caption, string message, Collection<ChoiceDescription> choices, IEnumerable<int> defaultChoices) => throw NonInteractive();
         public override PSCredential? PromptForCredential(string caption, string message, string userName, string targetName) => throw NonInteractive();
-        public override PSCredential? PromptForCredential(string caption, string message, string userName, string targetName, PSCredentialTypes allowedCredentialTypes, PSCredentialUIOptions options) => throw NonInteractive();
+        public override PSCredential? PromptForCredential(string caption, string message, string userName, string targetName, PSCredentialTypes allowedTypes, PSCredentialUIOptions options) => throw NonInteractive();
         public override string? ReadLine() => throw NonInteractive();
         public override SecureString? ReadLineAsSecureString() => throw NonInteractive();
 

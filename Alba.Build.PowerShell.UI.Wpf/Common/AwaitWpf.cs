@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Windows.Threading;
+using Alba.Build.PowerShell.Common;
 using JetBrains.Annotations;
 
 namespace Alba.Build.PowerShell.UI.Wpf.Common;

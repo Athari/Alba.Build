@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using JetBrains.Annotations;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 internal class CollectionDebugView<T>(ICollection<T> collection)
 {

@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 public static class DictionaryExts
 {

@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 /// <summary>
 /// Map is to <see cref="Dictionary{TKey,TValue}"/> what <see cref="Collection{T}"/> is to <see cref="List{T}"/>.
@@ -53,7 +53,7 @@ internal class Map<TKey, TValue>(IDictionary<TKey, TValue> dictionary, Collectio
         TryGetItem(key, out _);
 
     private bool Contains(TKey key, TValue value) =>
-        TryGetItem(key, out TValue v) && EqualityComparer<TValue>.Default.Equals(v, value);
+        TryGetItem(key, out TValue v) && v.EqualsValue(value);
 
     public bool TryGetValue(TKey key, out TValue value) =>
         TryGetItem(key, out value);

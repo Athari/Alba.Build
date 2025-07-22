@@ -2,7 +2,7 @@
 using System.Runtime.ExceptionServices;
 using JetBrains.Annotations;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 #pragma warning disable CS8763 // A method marked [DoesNotReturn] should not return.
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using Alba.Build.PowerShell.Common;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 

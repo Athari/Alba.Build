@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
+using Alba.Build.PowerShell.Common;
 using Microsoft.Build.Framework;
 
 namespace Alba.Build.PowerShell.Tasks;

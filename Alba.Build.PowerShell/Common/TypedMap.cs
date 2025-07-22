@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 [DebuggerDisplay("Count = {Count}"), DebuggerTypeProxy(typeof(DictionaryDebugView<,>))]
 internal class TypedMap<TKey, TValue>(IDictionary dictionary, CollectionOptions options = CollectionOptions.Default)
@@ -35,7 +35,7 @@ internal class TypedMap<TKey, TValue>(IDictionary dictionary, CollectionOptions 
     public ICollection<TValue> Values => field ??= new ReadOnlyTypedCollection<TValue>(_dictionary.Values);
 
     private bool Contains(TKey key, TValue value) =>
-        TryGetItem(key, out TValue v) && EqualityComparer<TValue>.Default.Equals(v, value);
+        TryGetItem(key, out TValue v) && v.EqualsValue(value);
 
     public bool ContainsKey(TKey key) =>
         TryGetItem(key, out _);
@@ -167,7 +167,7 @@ internal class TypedMap<TKey, TValue>(IDictionary dictionary, CollectionOptions 
         new("Dictionary is read-only.");
 
     private static KeyNotFoundException KeyNotFound(string key) =>
-        new($"Key '{key}' not found.");
+        new($"Key {key.Qt2()} not found.");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void GuardNotReadOnly()

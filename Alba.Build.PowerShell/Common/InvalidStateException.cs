@@ -1,4 +1,4 @@
-﻿namespace Alba.Build.PowerShell.UI.Wpf.Common;
+﻿namespace Alba.Build.PowerShell.Common;
 
 public class InvalidStateException : InvalidOperationException
 {

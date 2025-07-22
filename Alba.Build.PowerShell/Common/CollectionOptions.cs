@@ -1,4 +1,4 @@
-﻿namespace Alba.Build.PowerShell;
+﻿namespace Alba.Build.PowerShell.Common;
 
 [Flags]
 internal enum CollectionOptions : byte

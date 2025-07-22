@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using JetBrains.Annotations;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 [PublicAPI]
 internal class DictionaryDebugView<TKey, TValue>(IDictionary<TKey, TValue> dictionary)

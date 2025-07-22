@@ -1,6 +1,6 @@
 ﻿using JetBrains.Annotations;
 
-namespace Alba.Build.PowerShell.UI.Wpf.Common;
+namespace Alba.Build.PowerShell.Common;
 
 [PublicAPI]
 public static class ObjectExts
@@ -40,4 +40,10 @@ public static class ObjectExts
     [Pure]
     public static bool IsAnyType(this object? @this, params IEnumerable<Type> types) =>
         @this == null || types.Any(@this.GetType().IsAssignableTo);
+
+    public static T With<T>(this T @this, Action<T> action)
+    {
+        action(@this);
+        return @this;
+    }
 }

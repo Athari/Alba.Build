@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 internal readonly record struct Result<T>(T Value, Exception? Error, bool IsSuccess)
 {

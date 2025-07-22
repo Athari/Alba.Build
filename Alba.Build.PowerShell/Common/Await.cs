@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 
-namespace Alba.Build.PowerShell.UI.Wpf.Common;
+namespace Alba.Build.PowerShell.Common;
 
 [PublicAPI]
 [SuppressMessage("ReSharper", "MethodOverloadWithOptionalParameter", Justification = "GetAwaiter method must have no parameters to be recognized")]

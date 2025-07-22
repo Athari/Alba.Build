@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 
-namespace Alba.Build.PowerShell.UI.Wpf.Common;
+namespace Alba.Build.PowerShell.Common;
 
 /// <summary>Strict typing for duck-typed awaiters.</summary>
 [PublicAPI]

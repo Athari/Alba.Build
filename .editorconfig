@@ -20,7 +20,7 @@ dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
 dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
 
-dotnet_remove_unnecessary_suppression_exclusions = category:ReSharper, category:AvaloniaProperty, category:Reliability, category:Design, category:Unknown # Bugged af for categories disabled by default
+dotnet_remove_unnecessary_suppression_exclusions = category:ReSharper, category:AvaloniaProperty, category:Reliability, category:Performance, category:Design, category:Unknown # Bugged af for categories disabled by default
 dotnet_code_quality.CA1822.api_surface = private, internal
 dotnet_diagnostic.CA1063.severity = none # Implement IDisposable correctly # Obsolete; use SafeHandles instead
 dotnet_diagnostic.CA1805.severity = none # Do not initialize unnecessarily # Readability

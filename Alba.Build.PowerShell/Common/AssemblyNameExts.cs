@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Alba.Build.PowerShell;
+namespace Alba.Build.PowerShell.Common;
 
 internal static class AssemblyNameExts
 {
